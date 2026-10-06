@@ -8,6 +8,7 @@ NOT via negative weights. A* optimality/consistency is preserved.
 from __future__ import annotations
 import heapq
 import logging
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -68,6 +69,19 @@ class RouteEngine:
         self._hazard = data_service.hazard
         self._sci = data_service.science_value
 
+        # Precompute step distances for 8-connected grid (non-square cell geometry)
+        ns = self.meta.cell_size_ns_m
+        ew = self.meta.cell_size_ew_m
+        diag = math.hypot(ns, ew)
+        self._ns_m = ns
+        self._ew_m = ew
+        self._step_dist = {
+            (0, 1): ew, (0, -1): ew,
+            (1, 0): ns, (-1, 0): ns,
+            (1, 1): diag, (1, -1): diag,
+            (-1, 1): diag, (-1, -1): diag,
+        }
+
     # ── Public API ─────────────────────────────────────────────────────────────
 
     def compute_routes(
@@ -121,15 +135,17 @@ class RouteEngine:
         max_slope = constraints.max_slope_deg
 
         # Distance scale for heuristic normalisation
-        # We estimate typical per-cell cost to goal using haversine
-        goal_lat, goal_lon = grid_to_latlon(goal[0], goal[1], self.meta)
+        gr, gc = goal[0], goal[1]
+        ns_m, ew_m = self._ns_m, self._ew_m
+        w_dist_scale = weights["distance"] / 1000.0
 
         def heuristic(r: int, c: int) -> float:
-            lat, lon = grid_to_latlon(r, c, self.meta)
-            dist = haversine_mars(lat, lon, goal_lat, goal_lon)
+            dr = (r - gr) * ns_m
+            dc = (c - gc) * ew_m
+            dist = math.hypot(dr, dc)
             # h(n) = w_distance * (dist_to_goal / 1000.0)
             # Admissible and consistent since dist_norm = dist / 1000.0 in _edge_cost
-            return weights["distance"] * (dist / 1000.0)
+            return w_dist_scale * dist
 
         open_set: list[_PQItem] = []
         g_score: np.ndarray = np.full((rows, cols), np.inf)
@@ -203,9 +219,9 @@ class RouteEngine:
         science_penalty = w * avg(1 - science_value) so that
         high-science cells have LOW penalty (A* prefers them).
         """
-        lat_a, lon_a = grid_to_latlon(a[0], a[1], self.meta)
-        lat_b, lon_b = grid_to_latlon(b[0], b[1], self.meta)
-        dist = haversine_mars(lat_a, lon_a, lat_b, lon_b)
+        dr = b[0] - a[0]
+        dc = b[1] - a[1]
+        dist = self._step_dist.get((dr, dc), 250.0)
 
         avg_trav = (float(self._trav[a[0], a[1]]) + float(self._trav[b[0], b[1]])) / 2.0
         avg_hazard = (float(self._hazard[a[0], a[1]]) + float(self._hazard[b[0], b[1]])) / 2.0
