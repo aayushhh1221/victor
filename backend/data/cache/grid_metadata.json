@@ -1,0 +1,16 @@
+{
+  "lat_min": 18.0,
+  "lat_max": 18.9,
+  "lon_min": 77.0,
+  "lon_max": 78.0,
+  "rows": 300,
+  "cols": 300,
+  "cell_size_ns_m": 177.5,
+  "cell_size_ew_m": 187.1,
+  "cell_shape": "non-square",
+  "coordinate_system": "IAU2000_planetocentric_east",
+  "region_ns_km": 53.2,
+  "region_ew_km": 56.1,
+  "data_mode": "DEMONSTRATION",
+  "label": "DEMONSTRATION \u2014 NOT REAL NASA DATA"
+}

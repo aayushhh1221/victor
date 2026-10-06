@@ -1,0 +1,122 @@
+[
+  {
+    "id": "wdf-01",
+    "name": "Western Delta Front",
+    "type": "DELTAIC_SEDIMENT",
+    "mineral_class": "PHYLLOSILICATE",
+    "lat": 18.47,
+    "lon": 77.25,
+    "science_value": 0.92,
+    "tier": 1,
+    "description": "Primary deltaic sediment deposit at western delta lobe entry. High phyllosilicate signature. Key Mars 2020 science target.",
+    "source": "Goudge et al. 2017; Farley et al. 2020"
+  },
+  {
+    "id": "carb-01",
+    "name": "Carbonate Deposit Alpha",
+    "type": "CARBONATE",
+    "mineral_class": "CARBONATE",
+    "lat": 18.52,
+    "lon": 77.2,
+    "science_value": 0.95,
+    "tier": 1,
+    "description": "Exposed carbonate unit in delta lobe. Highest biosignature preservation potential in Jezero.",
+    "source": "Goudge et al. 2015"
+  },
+  {
+    "id": "carb-02",
+    "name": "Carbonate Deposit Beta",
+    "type": "CARBONATE",
+    "mineral_class": "CARBONATE",
+    "lat": 18.49,
+    "lon": 77.28,
+    "science_value": 0.88,
+    "tier": 1,
+    "description": "Secondary carbonate outcrop within delta fan.",
+    "source": "Goudge et al. 2015"
+  },
+  {
+    "id": "carb-03",
+    "name": "Carbonate Deposit Gamma",
+    "type": "CARBONATE",
+    "mineral_class": "CARBONATE",
+    "lat": 18.44,
+    "lon": 77.33,
+    "science_value": 0.83,
+    "tier": 1,
+    "description": "Tertiary carbonate exposure at delta margin.",
+    "source": "Goudge et al. 2015"
+  },
+  {
+    "id": "sei-01",
+    "name": "Seitah Olivine Unit A",
+    "type": "OLIVINE",
+    "mineral_class": "OLIVINE_ALTERED",
+    "lat": 18.2,
+    "lon": 77.62,
+    "science_value": 0.72,
+    "tier": 2,
+    "description": "Seitah formation altered olivine, southeast basin. Interacted with water. Farley et al. 2022 primary target.",
+    "source": "Farley et al. 2022 (Science 377)"
+  },
+  {
+    "id": "sei-02",
+    "name": "Seitah Olivine Unit B",
+    "type": "OLIVINE",
+    "mineral_class": "OLIVINE_ALTERED",
+    "lat": 18.15,
+    "lon": 77.7,
+    "science_value": 0.67,
+    "tier": 2,
+    "description": "Secondary Seitah olivine exposure with alteration rind.",
+    "source": "Farley et al. 2022 (Science 377)"
+  },
+  {
+    "id": "shore-01",
+    "name": "Ancient Shoreline",
+    "type": "LACUSTRINE",
+    "mineral_class": "PHYLLOSILICATE",
+    "lat": 18.55,
+    "lon": 77.63,
+    "science_value": 0.7,
+    "tier": 2,
+    "description": "Inferred ancient shoreline of Jezero paleolake. Lacustrine sediment deposition expected.",
+    "source": "Mangold et al. 2021"
+  },
+  {
+    "id": "phyl-01",
+    "name": "Rim Phyllosilicate N",
+    "type": "PHYLLOSILICATE",
+    "mineral_class": "PHYLLOSILICATE",
+    "lat": 18.86,
+    "lon": 77.5,
+    "science_value": 0.78,
+    "tier": 1,
+    "description": "Phyllosilicate exposure in northern crater rim. Formed by aqueous alteration.",
+    "source": "Ehlmann et al. 2008"
+  },
+  {
+    "id": "phyl-02",
+    "name": "Rim Phyllosilicate S",
+    "type": "PHYLLOSILICATE",
+    "mineral_class": "PHYLLOSILICATE",
+    "lat": 18.04,
+    "lon": 77.2,
+    "science_value": 0.73,
+    "tier": 1,
+    "description": "Southern rim phyllosilicate outcrop.",
+    "source": "Ehlmann et al. 2008"
+  },
+  {
+    "id": "hsilica-01",
+    "name": "Hydrated Silica Patch",
+    "type": "HYDRATED_SILICA",
+    "mineral_class": "HYDRATED_SILICA",
+    "lat": 18.43,
+    "lon": 77.15,
+    "science_value": 0.85,
+    "tier": 1,
+    "description": "Hydrated silica at delta inlet. High biosignature preservation. Tier 1 priority.",
+    "source": "Goudge et al. 2017"
+  }
+]

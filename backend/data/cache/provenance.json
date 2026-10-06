@@ -1,0 +1,44 @@
+[
+  {
+    "source": "MOLA/MGS (SYNTHETIC MODEL)",
+    "product": "Synthetic elevation modeled on MOLA MEGDR 128ppd",
+    "instrument": "MOLA (Mars Orbiter Laser Altimeter)",
+    "mission": "Mars Global Surveyor (MGS)",
+    "pds_product_id": "SYNTHETIC_MOLA_JEZERO_300x300",
+    "observation_time": "1997-2001",
+    "retrieval_date": "2026-10-06T05:13:41.622410Z",
+    "processing_version": "synthetic-1.0",
+    "coordinate_system": "IAU2000_planetocentric_east",
+    "resolution_m": 177.5,
+    "confidence": "MODERATE",
+    "notes": "DEMONSTRATION \u2014 NOT REAL NASA DATA. Synthetic elevation modeled on published Jezero geology. For VERIFIED_SNAPSHOT, run real data pipeline."
+  },
+  {
+    "source": "CRISM/MRO (SYNTHETIC MODEL)",
+    "product": "Synthetic mineral tier model based on CRISM published results",
+    "instrument": "CRISM (Compact Reconnaissance Imaging Spectrometer for Mars)",
+    "mission": "Mars Reconnaissance Orbiter (MRO)",
+    "pds_product_id": "SYNTHETIC_CRISM_JEZERO_TIERMODEL",
+    "observation_time": "2006-present",
+    "retrieval_date": "2026-10-06T05:13:41.622410Z",
+    "processing_version": "synthetic-1.0",
+    "coordinate_system": "IAU2000_planetocentric_east",
+    "resolution_m": 18.0,
+    "confidence": "MODERATE",
+    "notes": "DEMONSTRATION \u2014 NOT REAL NASA DATA. Tier-based model from Goudge et al. 2015, Farley et al. 2020."
+  },
+  {
+    "source": "THEMIS/Odyssey (SYNTHETIC MODEL)",
+    "product": "Synthetic TI-proxy for surface_dust_risk",
+    "instrument": "THEMIS (Thermal Emission Imaging System)",
+    "mission": "Mars Odyssey",
+    "pds_product_id": "SYNTHETIC_THEMIS_JEZERO_TI",
+    "observation_time": "2001-present",
+    "retrieval_date": "2026-10-06T05:13:41.622410Z",
+    "processing_version": "synthetic-1.0",
+    "coordinate_system": "IAU2000_planetocentric_east",
+    "resolution_m": 100.0,
+    "confidence": "LOW",
+    "notes": "DEMONSTRATION \u2014 NOT REAL NASA DATA. surface_dust_risk modeled as TI proxy."
+  }
+]

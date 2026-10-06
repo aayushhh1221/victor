@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── PATHWISE Design System ─────────────────────────────────────────────── */
+:root {
+  /* Core palette */
+  --pathwise-navy:     #0B1929;
+  --pathwise-navy-2:   #0F2540;
+  --pathwise-blue:     #1E88E5;
+  --pathwise-blue-2:   #1565C0;
+  --pathwise-accent:   #FF6F00;
+  --pathwise-surface:  #F8F9FA;
+  --pathwise-panel:    #0D1F33;
+  --pathwise-border:   rgba(255,255,255,0.08);
+  --pathwise-text:     #E8EDF3;
+  --pathwise-muted:    #8A9AB5;
+
+  /* Strategy colours */
+  --route-safest:          #22C55E;
+  --route-fastest:         #3B82F6;
+  --route-science-richest: #F97316;
+  --route-balanced:        #A855F7;
+
+  /* Data mode colours */
+  --mode-live:          #22C55E;
+  --mode-verified:      #3B82F6;
+  --mode-demonstration: #F59E0B;
+
+  /* Confidence */
+  --conf-high:     #22C55E;
+  --conf-moderate: #F59E0B;
+  --conf-low:      #EF4444;
+
+  /* Science tiers */
+  --tier-1: #22C55E;
+  --tier-2: #86EFAC;
+  --tier-3: #FCD34D;
+  --tier-4: #9CA3AF;
+}
+
+/* ── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--pathwise-navy);
+  color: var(--pathwise-text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Leaflet override ──────────────────────────────────────────────────── */
+.leaflet-container {
+  background: #1A0A00 !important;
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-tooltip {
+  background: rgba(11,25,41,0.95) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  color: #E8EDF3 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  border-radius: 4px !important;
+  padding: 6px 10px !important;
+  white-space: nowrap !important;
+}
+
+.leaflet-tooltip::before { border-top-color: rgba(255,255,255,0.15) !important; }
+
+/* ── Scrollbars ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+/* ── Data mode badge ───────────────────────────────────────────────────── */
+.badge-live           { background: rgba(34,197,94,0.15); color: #22C55E; border: 1px solid #22C55E40; }
+.badge-verified       { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid #3B82F640; }
+.badge-demonstration  { background: rgba(245,158,11,0.2); color: #F59E0B; border: 1px solid #F59E0B40; }
+
+/* ── Panels ────────────────────────────────────────────────────────────── */
+.pathwise-panel {
+  background: var(--pathwise-panel);
+  border: 1px solid var(--pathwise-border);
+  border-radius: 6px;
+}
+
+/* ── Typography ────────────────────────────────────────────────────────── */
+.section-heading {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pathwise-muted);
+}
+
+.metric-value {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 14px;
+  color: var(--pathwise-text);
+  font-weight: 500;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: var(--pathwise-muted);
+}
+
+/* ── Science tier colours ──────────────────────────────────────────────── */
+.tier-1 { color: var(--tier-1); }
+.tier-2 { color: var(--tier-2); }
+.tier-3 { color: var(--tier-3); }
+.tier-4 { color: var(--tier-4); }
+
+/* ── Animated status dot ───────────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+  70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+.status-live { animation: pulse-ring 2s infinite; }
+
+/* ── Route line legend ─────────────────────────────────────────────────── */
+.route-legend-safest          { background: var(--route-safest); }
+.route-legend-fastest         { background: var(--route-fastest); }
+.route-legend-science-richest { background: var(--route-science-richest); }
+.route-legend-balanced        { background: var(--route-balanced); }
+
+/* ── Loading skeleton ──────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #0F2540 25%, #162D45 50%, #0F2540 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* ── Recharts overrides ───────────────────────────────────────────────── */
+.recharts-text { fill: var(--pathwise-muted) !important; font-size: 11px; }
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255,255,255,0.05) !important;
+}
