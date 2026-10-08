@@ -11,6 +11,21 @@
   "coordinate_system": "IAU2000_planetocentric_east",
   "region_ns_km": 53.2,
   "region_ew_km": 56.1,
-  "data_mode": "DEMONSTRATION",
-  "label": "DEMONSTRATION \u2014 NOT REAL NASA DATA"
+  "data_mode": "VERIFIED_SNAPSHOT",
+  "label": "VERIFIED SNAPSHOT \u2014 real NASA open data from 4 missions",
+  "compliance": {
+    "real_nasa_data": true,
+    "multi_mission": true,
+    "compliant": true,
+    "nasa_missions": [
+      "2001 Mars Odyssey",
+      "Mars 2020",
+      "Mars Global Surveyor",
+      "Mars Reconnaissance Orbiter"
+    ],
+    "mission_count": 4,
+    "missions_required": 2,
+    "synthetic_sources": [],
+    "blocking_issues": []
+  }
 }

@@ -1,4 +1,4 @@
-"""PATHWISE — Science opportunity engine."""
+"""VICTOR — Science opportunity engine."""
 from __future__ import annotations
 import math
 from ..models.domain import Route, ScienceTarget, Coordinate

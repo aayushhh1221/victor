@@ -1,5 +1,5 @@
 """
-PATHWISE — Data Pipeline: Phase 1 (Real NASA Data Acquisition)
+VICTOR — Data Pipeline: Phase 1 (Real NASA Data Acquisition)
 
 Attempts to download real NASA data from USGS Astropedia / PDS.
 On failure, falls back to generate_synthetic_fallback.py.
@@ -20,7 +20,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("pathwise.data_pipeline")
+logger = logging.getLogger("victor.data_pipeline")
 
 CACHE_DIR = ROOT / "backend" / "data" / "cache"
 RAW_DIR = ROOT / "backend" / "data" / "raw"
@@ -91,7 +91,7 @@ def main():
         logger.info("Delete backend/data/cache/*.npy to re-run.")
         return
 
-    logger.info("Starting PATHWISE data pipeline...")
+    logger.info("Starting VICTOR data pipeline...")
     logger.info(f"Grid: {ROWS}×{COLS}, extent: {LAT_MIN}–{LAT_MAX}°N, {LON_MIN}–{LON_MAX}°E")
 
     real_success = attempt_real_data_download()

@@ -1,5 +1,5 @@
 """
-PATHWISE — Synthetic Fallback Data Generator.
+VICTOR — Synthetic Fallback Data Generator.
 
 EMERGENCY FALLBACK ONLY. This script generates synthetic grids
 modeled on published Jezero Crater geological maps.
@@ -27,7 +27,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("pathwise.synthetic")
+logger = logging.getLogger("victor.synthetic")
 
 CACHE_DIR = ROOT / "backend" / "data" / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,5 @@
 /**
- * PATHWISE — Backend API client.
+ * VICTOR — Backend API client.
  * All requests go to the FastAPI backend at NEXT_PUBLIC_API_URL.
  */
 
@@ -12,6 +12,8 @@ import type {
   ScienceProfileResponse,
   HealthResponse,
   ScienceTarget,
+  RegionInfo,
+  MapLayersResponse,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -55,6 +57,22 @@ export async function getRegionInfo(): Promise<Record<string, unknown>> {
 
 export async function getLayers(): Promise<Record<string, unknown>> {
   return fetchJson<Record<string, unknown>>('/api/v1/map/layers');
+}
+
+/** Typed form of GET /api/v1/map/region. Prefer this over getRegionInfo(). */
+export async function getRegion(): Promise<RegionInfo> {
+  return fetchJson<RegionInfo>('/api/v1/map/region');
+}
+
+/**
+ * Typed form of GET /api/v1/map/layers.
+ *
+ * This response is the single source of truth for the layer panel: which
+ * layers exist, which are renderable (`available`), and why not when they
+ * are not. The client must not maintain a parallel hardcoded list.
+ */
+export async function getMapLayers(): Promise<MapLayersResponse> {
+  return fetchJson<MapLayersResponse>('/api/v1/map/layers');
 }
 
 export function getTileUrl(layer: string, z: number, x: number, y: number): string {

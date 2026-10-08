@@ -1,5 +1,5 @@
 """
-PATHWISE — Map Tile Generator.
+VICTOR — Map Tile Generator.
 
 Generates PNG tile sets from grid data for Leaflet display.
 Zoom levels 1-5 for terrain, hazard, and science layers.
@@ -16,7 +16,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("pathwise.tiles")
+logger = logging.getLogger("victor.tiles")
 
 CACHE_DIR = ROOT / "backend" / "data" / "cache"
 TILES_DIR = ROOT / "backend" / "data" / "tiles"
@@ -50,7 +50,7 @@ SCIENCE_COLORS = [
 
 
 def interpolate_color(value, colormap):
-    """Linear interpolation between colormap stops."""
+    """Linear interpolation between colormap stops (scalar; kept for callers)."""
     vals = [c[0] for c in colormap]
     cols = [c[1] for c in colormap]
 
@@ -68,19 +68,46 @@ def interpolate_color(value, colormap):
 
 
 def grid_to_image(grid: np.ndarray, colormap, mode: str = "RGB") -> Image.Image:
-    """Convert a 2D numpy grid to a PIL image using a colormap."""
-    rows, cols = grid.shape
-    img = Image.new(mode, (cols, rows))
-    pixels = img.load()
+    """Convert a 2D numpy grid to a PIL image using a colormap.
 
-    for r in range(rows):
-        for c in range(cols):
-            color = interpolate_color(float(grid[r, c]), colormap)
-            if mode == "RGBA":
-                pixels[c, r] = color[:4] if len(color) >= 4 else color + (255,)
-            else:
-                pixels[c, r] = color[:3]
-    return img
+    Vectorised with np.interp per channel. The original implementation called
+    interpolate_color once per pixel — 90,000 Python calls per layer, which is
+    the reason tile generation was slow enough to be excluded from the build.
+    """
+    stops = np.array([c[0] for c in colormap], dtype=np.float64)
+    channels = len(colormap[0][1])
+    cols = np.array(
+        [list(c[1]) + [255] * (channels - len(c[1])) for c in colormap],
+        dtype=np.float64,
+    )
+
+    flat = np.nan_to_num(grid.astype(np.float64), nan=float(stops[0])).ravel()
+    n_out = 4 if mode == "RGBA" else 3
+    out = np.zeros((flat.size, n_out), dtype=np.uint8)
+    for ch in range(min(n_out, channels)):
+        out[:, ch] = np.clip(
+            np.interp(flat, stops, cols[:, ch]), 0, 255
+        ).astype(np.uint8)
+    if n_out == 4 and channels < 4:
+        out[:, 3] = 255
+
+    rows, cols_n = grid.shape
+    return Image.fromarray(out.reshape(rows, cols_n, n_out), mode=mode)
+
+
+def normalize_to_uint8(grid: np.ndarray) -> np.ndarray:
+    """Stretch a grid to 0-255 across its 2nd-98th percentile.
+
+    Used for single-band imagery, where absolute values carry no colour meaning
+    and a percentile stretch gives usable contrast.
+    """
+    finite = grid[np.isfinite(grid)]
+    if finite.size == 0:
+        return np.zeros(grid.shape, dtype=np.float64)
+    lo, hi = np.percentile(finite, [2, 98])
+    if hi - lo < 1e-9:
+        return np.zeros(grid.shape, dtype=np.float64)
+    return np.clip((grid - lo) / (hi - lo), 0.0, 1.0) * 255.0
 
 
 def generate_tile(layer_img: Image.Image, z: int, x: int, y: int, out_dir: Path):
@@ -135,6 +162,20 @@ def create_placeholder():
     placeholder.save(str(TILES_DIR / "placeholder.png"), "PNG")
 
 
+GRAY_COLORS = [
+    (0.0,   (0, 0, 0)),
+    (255.0, (255, 255, 255)),
+]
+
+# Thermal inertia proxy: cool/dusty (low) through warm/rocky (high).
+THERMAL_COLORS = [
+    (0.0,  (40, 20, 90, 150)),    # low inertia — dust/sand
+    (0.35, (90, 60, 160, 130)),
+    (0.65, (220, 140, 60, 130)),
+    (1.0,  (255, 240, 180, 150)), # high inertia — bedrock
+]
+
+
 def main():
     if not (CACHE_DIR / "elevation.npy").exists():
         logger.error("Cache not found. Run data pipeline first.")
@@ -146,15 +187,34 @@ def main():
     hazard = np.load(CACHE_DIR / "hazard.npy")
     science = np.load(CACHE_DIR / "science_value.npy")
 
-    # Terrain (elevation, RGB)
+    # Shaded relief and elevation, both colormapped from the elevation grid.
     generate_layer_tiles("terrain", elevation, TERRAIN_COLORS, "RGB")
     generate_layer_tiles("elevation", elevation, TERRAIN_COLORS, "RGB")
 
-    # Hazard overlay (RGBA for transparency)
+    # Overlays use RGBA so they composite over the basemap.
     generate_layer_tiles("hazard", hazard, HAZARD_COLORS, "RGBA")
-
-    # Science overlay (RGBA for transparency)
     generate_layer_tiles("science", science, SCIENCE_COLORS, "RGBA")
+
+    # Optional layers — generated only once their grid has been ingested, which
+    # is also what makes the corresponding layer report itself available.
+    imagery_path = CACHE_DIR / "imagery.npy"
+    if imagery_path.exists():
+        imagery = normalize_to_uint8(np.load(imagery_path))
+        generate_layer_tiles("imagery", imagery, GRAY_COLORS, "RGB")
+    else:
+        logger.info("imagery.npy absent — skipping CTX basemap tiles")
+
+    thermal_path = CACHE_DIR / "thermal_proxy.npy"
+    if thermal_path.exists():
+        generate_layer_tiles("thermal", np.load(thermal_path), THERMAL_COLORS, "RGBA")
+    else:
+        logger.info("thermal_proxy.npy absent — skipping thermal tiles")
+
+    dust_path = CACHE_DIR / "dust.npy"
+    if dust_path.exists():
+        generate_layer_tiles("dust_activity", np.load(dust_path), HAZARD_COLORS, "RGBA")
+    else:
+        logger.info("dust.npy absent — skipping dust tiles")
 
     create_placeholder()
     logger.info("✓ Tile generation complete")

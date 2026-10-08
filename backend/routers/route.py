@@ -1,4 +1,4 @@
-"""PATHWISE — Route computation API router."""
+"""VICTOR — Route computation API router."""
 from __future__ import annotations
 import uuid
 from typing import Annotated
@@ -13,11 +13,18 @@ from ..services.evidence_engine import EvidenceEngine
 from ..services.pareto_engine import compute_pareto_dominance
 from ..services.science_engine import get_nearby_targets
 from ..dependencies import get_data_service, get_route_engine, get_evidence_engine
+from ..services.computation_store import build_store
 
 router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 
-# In-memory store: computation_id → RouteComputeResponse + request context
-_computation_store: dict[str, dict] = {}
+# computation_id → RouteComputeResponse + request context.
+#
+# Dict-like, but optionally Postgres-backed (set DATABASE_URL). That matters on
+# the deployment target: a free-tier service spins down after 15 minutes idle,
+# and with a plain dict every stored computation_id died with it — so segment
+# evidence, science profiles and scenario comparisons all 404'd for anyone who
+# left a tab open. It is also LRU-bounded, which the plain dict was not.
+_computation_store = build_store()
 
 
 @router.post("/compute", response_model=RouteComputeResponse)

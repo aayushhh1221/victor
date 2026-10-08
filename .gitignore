@@ -17,9 +17,11 @@ venv/
 .env.local
 .env.*.local
 
-# Data (raw and large binary cache — only generated files committed)
+# Data — raw downloads are large and regenerable from the provenance manifest.
+# The 300x300 .npy grids ARE committed (~5 MB total): they are required for the
+# backend to boot, the test suite silently skips 24 tests without them, and the
+# deployment target has an ephemeral filesystem so nothing can be generated there.
 backend/data/raw/
-backend/data/cache/*.npy
 backend/data/cache/*.npy.gz
 
 # Node
@@ -29,7 +31,7 @@ out/
 .npm/
 *.log
 
-# Tiles (regeneratable)
+# Tiles (regeneratable locally via scripts/generate_tiles.py, published to object storage)
 backend/data/tiles/
 
 # Test/coverage

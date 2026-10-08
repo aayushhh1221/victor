@@ -1,1 +1,1 @@
-"""PATHWISE backend package."""
+"""VICTOR backend package."""

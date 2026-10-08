@@ -1,4 +1,4 @@
-"""PATHWISE — Science analysis API router."""
+"""VICTOR — Science analysis API router."""
 from fastapi import APIRouter, HTTPException, Depends, Query
 from ..models.schemas import ScienceProfileResponse
 from ..services.science_engine import (

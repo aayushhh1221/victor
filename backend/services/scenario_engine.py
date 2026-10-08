@@ -1,4 +1,4 @@
-"""PATHWISE — Scenario comparison engine."""
+"""VICTOR — Scenario comparison engine."""
 from __future__ import annotations
 import copy
 from ..models.domain import MissionConstraints, Coordinate

@@ -1,4 +1,4 @@
-"""PATHWISE — Evidence engine: per-segment provenance and counterfactual attribution."""
+"""VICTOR — Evidence engine: per-segment provenance and counterfactual attribution."""
 from __future__ import annotations
 import math
 from typing import Optional

@@ -1,1 +1,1 @@
-"""PATHWISE routers package."""
+"""VICTOR routers package."""

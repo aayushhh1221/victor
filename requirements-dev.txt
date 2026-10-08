@@ -1,0 +1,15 @@
+# VICTOR — test and development dependencies.
+#
+# Install alongside production deps to run the test suite:
+#   pip install -r backend/requirements.txt -r requirements-dev.txt
+#   pytest backend/tests -v
+#
+# Note: the suite needs the data grids present. They are committed, so a fresh
+# clone works — but if you delete them, 24 of the 47 tests will SKIP rather than
+# fail, which looks far healthier than it is. Run scripts/bootstrap.py first.
+
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Required by starlette.testclient for the API tests.
+httpx>=0.25.0

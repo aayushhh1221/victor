@@ -1,5 +1,5 @@
 """
-PATHWISE — Multi-objective A* Route Engine.
+VICTOR — Multi-objective A* Route Engine.
 
 ALL edge costs are non-negative.
 Science-seeking is achieved via science_penalty = weight * (1 - science_value),
@@ -218,6 +218,26 @@ class RouteEngine:
 
         science_penalty = w * avg(1 - science_value) so that
         high-science cells have LOW penalty (A* prefers them).
+
+        Every term is scaled by the step's distance, making the whole cost a
+        "cost per kilometre travelled". This matters, and was previously wrong:
+        traversability, hazard and science were charged PER STEP while distance
+        was charged per metre. Two defects followed.
+
+        First, a diagonal step covers 1.41x the ground of an orthogonal one but
+        was charged the same terrain penalty, so diagonals were systematically
+        under-penalised.
+
+        Second, and worse, the per-step terms made total cost fall as step count
+        fell, so the non-distance objectives were partly optimising for "fewer
+        steps" rather than for their own criterion. That inverted the headline
+        result: SCIENCE_RICHEST returned a 272-step route with LESS science
+        (0.361) than SAFEST's 408-step route (0.446), because taking fewer steps
+        beat finding science.
+
+        Admissibility is preserved. The heuristic is w_distance * dist/1000, and
+        since every term here is non-negative and path length is at least the
+        straight-line distance, true remaining cost >= w_distance * dist/1000 = h.
         """
         dr = b[0] - a[0]
         dc = b[1] - a[1]
@@ -228,14 +248,13 @@ class RouteEngine:
         avg_sci = (float(self._sci[a[0], a[1]]) + float(self._sci[b[0], b[1]])) / 2.0
         sci_penalty = 1.0 - avg_sci  # range [0,1], non-negative
 
-        # Normalise distance contribution to comparable scale with other terms
-        # Divide by a reference distance (1000m) so terms are dimensionally similar
+        # Normalise distance to km so every term is a cost per kilometre.
         dist_norm = dist / 1000.0
 
         d_contrib = weights["distance"] * dist_norm
-        t_contrib = weights["traversability"] * avg_trav
-        h_contrib = weights["hazard"] * avg_hazard
-        sp_contrib = weights["science_penalty"] * sci_penalty
+        t_contrib = weights["traversability"] * avg_trav * dist_norm
+        h_contrib = weights["hazard"] * avg_hazard * dist_norm
+        sp_contrib = weights["science_penalty"] * sci_penalty * dist_norm
 
         total = d_contrib + t_contrib + h_contrib + sp_contrib
         breakdown = EdgeCostBreakdown(
@@ -298,7 +317,6 @@ class RouteEngine:
             hazard_b = float(self._hazard[b[0], b[1]])
             sci_b = float(self._sci[b[0], b[1]])
 
-            from ..utils.mars_geo import grid_to_latlon as g2l
             avg_sci = (float(self._sci[a[0], a[1]]) + sci_b) / 2
 
             _, breakdown = self._edge_cost(a, b, weights)

@@ -1,1 +1,1 @@
-"""PATHWISE tests package."""
+"""VICTOR tests package."""

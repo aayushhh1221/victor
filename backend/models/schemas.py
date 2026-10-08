@@ -1,4 +1,4 @@
-"""PATHWISE — API request/response schemas."""
+"""VICTOR — API request/response schemas."""
 from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
@@ -90,6 +90,64 @@ class RegionInfoResponse(BaseModel):
     data_mode: DataMode
     available_layers: list[str]
     provenance: list[ProvenanceRecord]
+
+    # ── Fields the UI info bar needs. Added per frontend request so the UI can
+    # render real values instead of falling back to hardcoded placeholders.
+    # Every one of these is computed from the loaded grids or left null — none
+    # is a constant typed in by hand.
+    name: str = "Jezero Crater"
+    lat: Optional[float] = None               # region centre
+    lon: Optional[float] = None               # region centre
+    elevation_m: Optional[float] = None       # mean of the real elevation grid
+    elevation_min_m: Optional[float] = None
+    elevation_max_m: Optional[float] = None
+    elevation_source: Optional[str] = None
+    terrain_type: Optional[str] = None
+    terrain_subtype: Optional[str] = None
+    region_description: Optional[str] = None
+    compliance: Optional[dict] = None         # challenge data-requirement status
+
+
+class LayerInfo(BaseModel):
+    """One map layer, with explicit availability so the UI never guesses."""
+
+    id: str
+    name: str
+    type: str
+    source: str
+    description: str
+    available: bool
+    unavailable_reason: Optional[str] = None
+    classification: Optional[str] = None
+    default_opacity: float = 1.0
+
+
+class LayersResponse(BaseModel):
+    data_mode: DataMode
+    layers: list[LayerInfo]
+
+
+class EnvironmentResponse(BaseModel):
+    """Atmospheric and surface conditions.
+
+    Every quantity is Optional and defaults to None. A null here means "not
+    ingested", and the UI is expected to render it as such. Returning a
+    plausible-looking number in place of a missing measurement would defeat the
+    purpose of the endpoint.
+    """
+
+    region: str
+    data_mode: DataMode
+    surface_temperature_day_c: Optional[float] = None
+    surface_temperature_night_c: Optional[float] = None
+    temperature_source: Optional[str] = None
+    thermal_index_mean: Optional[float] = None       # unitless THEMIS night-IR proxy
+    thermal_index_source: Optional[str] = None
+    dust_opacity_tau: Optional[float] = None
+    dust_opacity_source: Optional[str] = None
+    atmospheric_pressure_pa: Optional[float] = None
+    pressure_source: Optional[str] = None
+    notes: str = ""
 
 
 class ScienceProfilePoint(BaseModel):

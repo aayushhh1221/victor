@@ -1,1 +1,1 @@
-"""PATHWISE utilities package."""
+"""VICTOR utilities package."""

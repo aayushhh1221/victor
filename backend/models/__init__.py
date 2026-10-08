@@ -1,1 +1,1 @@
-"""PATHWISE models package."""
+"""VICTOR models package."""

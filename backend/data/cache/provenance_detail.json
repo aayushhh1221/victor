@@ -1,0 +1,275 @@
+{
+  "region": "Jezero Crater, Mars",
+  "extent": {
+    "lat_min": 18.0,
+    "lat_max": 18.9,
+    "lon_min": 77.0,
+    "lon_max": 78.0,
+    "rows": 300,
+    "cols": 300
+  },
+  "data_mode": "VERIFIED_SNAPSHOT",
+  "label": "VERIFIED SNAPSHOT \u2014 real NASA open data from 4 missions",
+  "generated_at": "2026-10-08T11:46:43.609009+00:00",
+  "compliance": {
+    "real_nasa_data": true,
+    "multi_mission": true,
+    "compliant": true,
+    "nasa_missions": [
+      "2001 Mars Odyssey",
+      "Mars 2020",
+      "Mars Global Surveyor",
+      "Mars Reconnaissance Orbiter"
+    ],
+    "mission_count": 4,
+    "missions_required": 2,
+    "synthetic_sources": [],
+    "blocking_issues": []
+  },
+  "grid_classification": {
+    "elevation": "MEASURED",
+    "slope": "DERIVED",
+    "traversability": "DERIVED",
+    "thermal_proxy": "DERIVED",
+    "imagery": "MEASURED",
+    "hazard": "DERIVED",
+    "olivine_index": "MEASURED",
+    "carbonate_index": "MEASURED",
+    "science_value": "DERIVED"
+  },
+  "sources": [
+    {
+      "product_id": "Mars_MGS_MOLA_DEM_mosaic_global_463m",
+      "title": "Mars MGS MOLA Digital Elevation Model, global mosaic",
+      "mission": "Mars Global Surveyor (MGS)",
+      "instrument": "MOLA (Mars Orbiter Laser Altimeter)",
+      "url": "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
+      "classification": "MEASURED",
+      "nasa_missions": [
+        "Mars Global Surveyor"
+      ],
+      "distributor": "USGS Astrogeology Science Center",
+      "archive_node": "NASA Planetary Data System (PDS) Cartography and Imaging Science Node",
+      "native_resolution": "463.0835744 m/px (128 pixels/degree)",
+      "native_resolution_m": 463.0835744,
+      "native_crs": "PROJCS[\"Equirectangular Mars\",GEOGCS[\"GCS_Mars\",DATUM[\"D_Mars\",SPHEROID[\"Mars_localRadius\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",0],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+      "observation_window": null,
+      "license": "CC0 (public domain)",
+      "retrieved_at": "2026-10-08T11:46:29.401586+00:00",
+      "checksum_sha256": "60296d6038466c1e2f5b74b37290bc593592fec4ca2920cf272c3edc9bfc1f00",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "elevation"
+      ],
+      "processing_chain": [
+        "Windowed /vsicurl read of 128.0x115.2 px from 46080x23040 global mosaic",
+        "Bilinear resample to 300x300"
+      ],
+      "caveats": [
+        "Native 463 m/px versus the 177.5 m x 187.1 m grid cell; relief below the source resolution is not resolved."
+      ]
+    },
+    {
+      "product_id": "Mars_MGS_MOLA_DEM_mosaic_global_463m__DERIVED_slope_traversability",
+      "title": "Slope and traversability derived from MOLA elevation",
+      "mission": "Mars Global Surveyor (MGS)",
+      "instrument": "MOLA (Mars Orbiter Laser Altimeter)",
+      "url": "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
+      "classification": "DERIVED",
+      "nasa_missions": [
+        "Mars Global Surveyor"
+      ],
+      "distributor": "USGS Astrogeology Science Center",
+      "archive_node": "NASA Planetary Data System (PDS) Cartography and Imaging Science Node",
+      "native_resolution": "463.0835744 m/px (128 pixels/degree)",
+      "native_resolution_m": 463.0835744,
+      "native_crs": null,
+      "observation_window": null,
+      "license": "CC0 (public domain)",
+      "retrieved_at": "2026-10-08T11:46:29.405495+00:00",
+      "checksum_sha256": "c36df236f0e3eb9a1b7ab02abf452035e43bd78bb80fd163990ffaf90f9f76b6",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "slope",
+        "traversability"
+      ],
+      "processing_chain": [
+        "slope = degrees(arctan(|grad(elevation)|)) with 177.5 m NS / 187.1 m EW spacing",
+        "traversability = banded cost multiplier per docs/nasa-data-catalog.md (0-5deg=1.0, 5-10=1.5, 10-15=2.5, 15-20=5.0, 20-25=10.0, >25=impassable)"
+      ],
+      "caveats": [
+        "Slope inherits MOLA's 463 m/px resolution: real obstacles smaller than ~463 m are not represented."
+      ]
+    },
+    {
+      "product_id": "THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018",
+      "title": "THEMIS Night Infrared controlled mosaic, global, v2 (Oct 2018)",
+      "mission": "2001 Mars Odyssey",
+      "instrument": "THEMIS (Thermal Emission Imaging System)",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/THEMIS_controlled_mosaics/AA_mosaics/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018.tif",
+      "classification": "DERIVED",
+      "nasa_missions": [
+        "2001 Mars Odyssey"
+      ],
+      "distributor": "USGS Astrogeology Science Center",
+      "archive_node": "NASA Planetary Data System (PDS) Cartography and Imaging Science Node",
+      "native_resolution": "100 m/px",
+      "native_resolution_m": 100.0,
+      "native_crs": "ESRI:103885",
+      "observation_window": null,
+      "license": "Public domain (NASA/USGS)",
+      "retrieved_at": "2026-10-08T11:46:29.485449+00:00",
+      "checksum_sha256": "b43ed2b6727a0dfaa7ded5684cc8d00782654619e74fa4ff70155262c9d32155",
+      "published_checksum_md5": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/THEMIS_controlled_mosaics/AA_mosaics/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018.tif.md5",
+      "bytes_read": null,
+      "grids_produced": [
+        "thermal_proxy"
+      ],
+      "processing_chain": [
+        "Windowed /vsicurl read of 592.7x533.5 px",
+        "Bilinear resample to 300x300",
+        "Normalised to 0-1 across the 2nd-98th percentile of the window"
+      ],
+      "caveats": [
+        "This is night-IR brightness normalised as a thermal inertia PROXY, not a published thermal inertia product. High values indicate heat-retaining (likely rocky) surfaces; low values indicate fast-cooling dust or loose sand."
+      ]
+    },
+    {
+      "product_id": "Jezero_CTX_BlockAdj_dd",
+      "title": "Jezero Crater CTX block-adjusted mosaic (Exploration Zone)",
+      "mission": "Mars Reconnaissance Orbiter (MRO)",
+      "instrument": "CTX (Context Camera)",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/CTX_EZs/Jezero_CTX_BlockAdj_dd.tif",
+      "classification": "MEASURED",
+      "nasa_missions": [
+        "Mars Reconnaissance Orbiter"
+      ],
+      "distributor": "USGS Astrogeology Science Center",
+      "archive_node": "NASA Planetary Data System (PDS) Cartography and Imaging Science Node",
+      "native_resolution": "~5 m/px (8.4353e-05 degrees/px)",
+      "native_resolution_m": 5.0,
+      "native_crs": "ESRI:104971",
+      "observation_window": null,
+      "license": "Public domain (NASA/USGS)",
+      "retrieved_at": "2026-10-08T11:46:29.510441+00:00",
+      "checksum_sha256": "daafbd116f82de037425f4fa2fc6e54ec79bbeb7a5a0d10b554a6a6e21c578bd",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "imagery"
+      ],
+      "processing_chain": [
+        "Windowed /vsicurl read of 11854.9x10669.4 px from 44076x41960 regional mosaic",
+        "Bilinear decimation to 300x300 for the basemap raster"
+      ],
+      "caveats": [
+        "Decimated from ~5 m/px to the computation grid for display. The full-resolution mosaic is used for map tiles, not for routing."
+      ]
+    },
+    {
+      "product_id": "VICTOR_hazard_composite",
+      "title": "Composite traverse hazard derived from MOLA slope and THEMIS night IR",
+      "mission": "Derived (MGS + Mars Odyssey)",
+      "instrument": "MOLA + THEMIS",
+      "url": "(derived \u2014 see contributing sources)",
+      "classification": "DERIVED",
+      "nasa_missions": [
+        "Mars Global Surveyor",
+        "2001 Mars Odyssey"
+      ],
+      "distributor": "Derived by VICTOR",
+      "archive_node": "NASA Planetary Data System (PDS) Cartography and Imaging Science Node",
+      "native_resolution": null,
+      "native_resolution_m": 187.1,
+      "native_crs": null,
+      "observation_window": null,
+      "license": "Derived from public domain inputs",
+      "retrieved_at": "2026-10-08T11:46:29.512838+00:00",
+      "checksum_sha256": "223f1791e582ed157083d697fd222cbd98d1179e2eb76d2a3f25de86fcf5b67a",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "hazard"
+      ],
+      "processing_chain": [
+        "hazard = 10 * (0.7 * clip(slope/25, 0, 1) + 0.3 * (1 - thermal_proxy))"
+      ],
+      "caveats": [
+        "Hazard is a VICTOR weighting of measured inputs, not a NASA hazard product. The weights are a modelling choice."
+      ]
+    },
+    {
+      "product_id": "t1250_mrrsu_20n078_0327_4",
+      "title": "CRISM MRDR multispectral summary parameters, tile 20N078 (MC-13)",
+      "mission": "Mars Reconnaissance Orbiter (MRO)",
+      "instrument": "CRISM (Compact Reconnaissance Imaging Spectrometer for Mars)",
+      "url": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+      "classification": "MEASURED",
+      "nasa_missions": [
+        "Mars Reconnaissance Orbiter"
+      ],
+      "distributor": "NASA PDS Geosciences Node (Washington University in St. Louis)",
+      "archive_node": "NASA Planetary Data System (PDS) Geosciences Node",
+      "native_resolution": "181.1424 m/px (327 px/degree)",
+      "native_resolution_m": 181.1424,
+      "native_crs": "Equirectangular, per-tile sphere; read via published 5x5 deg bounds",
+      "observation_window": null,
+      "license": "Public domain (NASA)",
+      "retrieved_at": "2026-10-08T11:46:43.497147+00:00",
+      "checksum_sha256": "c55309ceaf6f09ae8ded5609a395bdb9c251768df3772ef602626756ba399fc4",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "olivine_index",
+        "carbonate_index"
+      ],
+      "processing_chain": [
+        "HTTP range read of 1.8 MB from the 576 MB ENVI BSQ cube (band 16 OLINDEX3, band 53 CINDEX2)",
+        "Georeferenced via the product label's published 5x5 degree bounds",
+        "Bilinear resample to 300x300"
+      ],
+      "caveats": [
+        "CRISM multispectral mapping has swath gaps: only 66% of the window is measured. Unmeasured cells are stored as -9999 and must be treated as NO DATA, never as 'no mineral'.",
+        "Summary parameters are spectral indices, not mineral abundances."
+      ]
+    },
+    {
+      "product_id": "VICTOR_science_priority",
+      "title": "Science priority from CRISM mineralogy and published Jezero targets",
+      "mission": "MRO (CRISM) + Mars 2020 / published Jezero literature",
+      "instrument": "CRISM summary parameters + Perseverance science targeting",
+      "url": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/mc13/t1250_mrrsu_20n078_0327_4.img",
+      "classification": "DERIVED",
+      "nasa_missions": [
+        "Mars Reconnaissance Orbiter",
+        "Mars 2020"
+      ],
+      "distributor": "Derived by VICTOR",
+      "archive_node": "NASA Planetary Data System (PDS) Geosciences Node",
+      "native_resolution": null,
+      "native_resolution_m": 187.1,
+      "native_crs": null,
+      "observation_window": null,
+      "license": "Derived from public domain inputs",
+      "retrieved_at": "2026-10-08T11:46:43.550416+00:00",
+      "checksum_sha256": "45bc930daa600a6b0de7e33e786f6a67a28c69239c4a66135fa006204b076e0b",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "science_value"
+      ],
+      "processing_chain": [
+        "10 published science targets with literature coordinates",
+        "mineral = normalised max(OLINDEX3, CINDEX2) from real CRISM spectra",
+        "science = 0.6*mineral + 0.4*target_model where CRISM measured; target_model alone inside CRISM swath gaps"
+      ],
+      "caveats": [
+        "A priority SCORE, not a measurement. The mineral indices underneath it are real CRISM measurements; collapsing them into one priority number is a VICTOR modelling choice.",
+        "66% of cells are CRISM-measured (DERIVED); the rest fall back to the target proximity model (MODELLED). Per-cell provenance therefore varies across the grid.",
+        "Target sources: Ehlmann et al. 2008; Farley et al. 2022 (Science 377); Goudge et al. 2015; Goudge et al. 2017; Goudge et al. 2017; Farley et al. 2020; Mangold et al. 2021"
+      ]
+    }
+  ]
+}

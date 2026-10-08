@@ -1,4 +1,4 @@
-# PATHWISE — Implementation Blueprint (Part 2)
+# VICTOR — Implementation Blueprint (Part 2)
 # Backend, API, Models, Repository, Implementation Prompts
 
 ---
@@ -273,8 +273,8 @@ NSAC 2026/
 │   ├── architecture-decision.md
 │   ├── nasa-data-catalog.md
 │   ├── geospatial-methodology.md
-│   ├── PATHWISE-blueprint-part1.md
-│   ├── PATHWISE-blueprint-part2.md
+│   ├── VICTOR-blueprint-part1.md
+│   ├── VICTOR-blueprint-part2.md
 │   ├── demo-script.md
 │   ├── judge-qa.md
 │   └── BUILD_STATE.md
@@ -371,7 +371,7 @@ numpy, Pillow
 ### PROMPT 1: Foundation (Phase 0-1)
 
 ```
-TASK: Initialize the PATHWISE project for NASA Space Apps Challenge 2026.
+TASK: Initialize the VICTOR project for NASA Space Apps Challenge 2026.
 
 BACKEND:
 1. Create backend/requirements.txt:
@@ -403,16 +403,16 @@ FRONTEND:
    --app --src-dir --import-alias "@/*" --no-turbopack
 2. cd frontend && npm install leaflet react-leaflet @types/leaflet recharts
    lucide-react
-3. Create frontend/src/app/globals.css: CSS variables for --pathwise-navy
-   (#0B3D91), --pathwise-blue (#1E88E5), --pathwise-accent (#FF6F00),
-   --pathwise-surface (#F8F9FA). Import Inter from Google Fonts.
+3. Create frontend/src/app/globals.css: CSS variables for --victor-navy
+   (#0B3D91), --victor-blue (#1E88E5), --victor-accent (#FF6F00),
+   --victor-surface (#F8F9FA). Import Inter from Google Fonts.
 4. Create frontend/src/types/index.ts: TypeScript interfaces matching all
    backend models (note: DataMode = LIVE | VERIFIED_SNAPSHOT | DEMONSTRATION)
 5. Create frontend/src/services/api.ts: fetch wrapper for all backend endpoints
 6. Verify npm run dev starts on port 3000
 
 GIT: init, .gitignore (node_modules, .next, __pycache__, .env, *.npy,
-data/raw/), commit "feat: initialize PATHWISE project structure"
+data/raw/), commit "feat: initialize VICTOR project structure"
 
 DONE WHEN: backend /api/v1/health returns ok with data_mode VERIFIED_SNAPSHOT,
 frontend renders, git committed
@@ -421,7 +421,7 @@ frontend renders, git committed
 ### PROMPT 2: Data Layer (Phase 2-3)
 
 ```
-TASK: Build the PATHWISE data pipeline. The PRIMARY path uses real pre-downloaded
+TASK: Build the VICTOR data pipeline. The PRIMARY path uses real pre-downloaded
 NASA data (VERIFIED_SNAPSHOT mode). Synthetic fallback is emergency-only.
 
 PHASE 1 — ACQUIRE VERIFIED REAL NASA DATA:
@@ -514,7 +514,7 @@ contain real PDS product IDs, data_mode = VERIFIED_SNAPSHOT
 ```
 TASK: Build multi-objective A* pathfinding engine — the core intelligence.
 
-Read docs/PATHWISE-blueprint-part1.md sections 5 and 7 for exact specifications.
+Read docs/VICTOR-blueprint-part1.md sections 5 and 7 for exact specifications.
 
 IMPORTANT: All edge costs MUST be non-negative. Science-seeking is achieved
 via science_penalty = weight * (1 - science_value), NOT negative weights.
@@ -641,9 +641,9 @@ Pareto labels are computed for all 4 routes, all endpoints return valid JSON
 ### PROMPT 5: Frontend (Phase 11-14)
 
 ```
-TASK: Build the complete PATHWISE frontend matching reference.png design.
+TASK: Build the complete VICTOR frontend matching reference.png design.
 
-Read reference.png and docs/PATHWISE-blueprint-part1.md section 10-12.
+Read reference.png and docs/VICTOR-blueprint-part1.md section 10-12.
 Use Next.js 14, TypeScript, Tailwind CSS, Leaflet, Recharts, Lucide icons.
 
 LAYOUT (src/app/planner/page.tsx):
@@ -651,7 +651,7 @@ LAYOUT (src/app/planner/page.tsx):
 - Main: left sidebar(240px) + center(map + bottom panels) + right panel(320px)
 
 HEADER (src/components/common/Header.tsx):
-- Left: "PATHWISE" logo text in navy
+- Left: "VICTOR" logo text in navy
 - Center: nav tabs (Mission Planner, Data & Layers, Science Targets, Methodology)
 - Right: data mode badge (green=LIVE, blue=VERIFIED_SNAPSHOT, amber=DEMONSTRATION)
   + search icon
@@ -729,7 +729,7 @@ EVIDENCE POPUP (src/components/map/EvidencePopup.tsx):
 - Analytical counterfactual: "Without hazard factor, cost would be {X}"
 - Data source badges with dates
 - Confidence: categorical only (HIGH/MODERATE/LOW)
-- This is what makes PATHWISE different from every other team
+- This is what makes VICTOR different from every other team
 
 SCENARIO PANEL (src/components/panels/ScenarioPanel.tsx):
 - Sliders: Safety Priority, Science Priority, Max Slope (5-30), EVA Time (2-8h)
@@ -741,7 +741,7 @@ HOOKS:
 - useScenario: parameters, compareScenarios()
 
 LANDING (src/app/page.tsx):
-- Hero: "PATHWISE - Martian Marswalk Intelligence Platform"
+- Hero: "VICTOR - Martian Marswalk Intelligence Platform"
 - "A multi-objective route planning system for future Mars explorers"
 - "Start Planning" button -> /planner
 - Professional, clean, NASA-institutional aesthetic
@@ -812,7 +812,7 @@ DOCUMENTATION:
 - docs/demo-script.md: 7-minute demo walkthrough using runtime variables
 - docs/judge-qa.md: anticipated Q&A with accurate answers
 
-FINAL: npm run build succeeds, pytest passes, git commit "PATHWISE v1.0"
+FINAL: npm run build succeeds, pytest passes, git commit "VICTOR v1.0"
 
 DONE WHEN: demo workflow completes in <30 seconds, no errors, demo scenario
 loads in <2 seconds from VERIFIED_SNAPSHOT data, evidence inspector works
@@ -885,7 +885,7 @@ with cost decomposition, scenario comparison works, Pareto labels shown
 
 > **All numeric values below are TEMPLATE VARIABLES. They must be populated from actual computed results AFTER implementation, not hardcoded.**
 
-**0:00-0:45** — "A future astronaut at Jezero Crater needs to walk across hazardous terrain. The terrain is dangerous, science is valuable, time is limited. Which route? PATHWISE helps decide."
+**0:00-0:45** — "A future astronaut at Jezero Crater needs to walk across hazardous terrain. The terrain is dangerous, science is valuable, time is limited. Which route? VICTOR helps decide."
 
 **0:45-1:30** — Show map. Toggle layers: terrain, elevation, hazards, science targets. "Real NASA data from 6 instrument datasets across 4 Mars missions — MOLA, HiRISE, CRISM, THEMIS, MCS, and Perseverance."
 
@@ -899,7 +899,7 @@ with cost decomposition, scenario comparison works, Pareto labels shown
 
 **5:00-6:00** — Scenario change. Reduce max slope 20° → 15°. Recompute. Routes shift. "{pct_impassable}% terrain now off-limits. SAFEST shifted {route_shift_km} km. BALANCED still reaches science target." (Values from computation.)
 
-**6:00-7:00** — "PATHWISE doesn't just show Mars. It computes which path to take, explains why using NASA data, and lets you change the mission to see what happens. This is not a map. This is mission intelligence."
+**6:00-7:00** — "VICTOR doesn't just show Mars. It computes which path to take, explains why using NASA data, and lets you change the mission to see what happens. This is not a map. This is mission intelligence."
 
 ---
 
@@ -934,7 +934,7 @@ with cost decomposition, scenario comparison works, Pareto labels shown
 ## EXECUTIVE SUMMARY
 
 ### WHAT WE BUILD
-PATHWISE — Multi-objective Marswalk planning fusing 6 instrument datasets from 4 NASA Mars missions into traversability + science grids, running weighted A* (all non-negative edge costs) for 4 route strategies, with Pareto dominance analysis, per-segment evidence provenance with analytical counterfactual attribution, and scenario comparison. Data runs on VERIFIED_SNAPSHOT (real pre-downloaded NASA data) by default.
+VICTOR — Multi-objective Marswalk planning fusing 6 instrument datasets from 4 NASA Mars missions into traversability + science grids, running weighted A* (all non-negative edge costs) for 4 route strategies, with Pareto dominance analysis, per-segment evidence provenance with analytical counterfactual attribution, and scenario comparison. Data runs on VERIFIED_SNAPSHOT (real pre-downloaded NASA data) by default.
 
 ### WHY DIFFERENT
 4 competing routes (not 1), quantified trade-offs with Pareto analysis, per-segment NASA evidence with cost decomposition, scenario re-computation. Real computation over real data, not LLM text generation.
@@ -949,4 +949,4 @@ Map loads, layers toggle, 4 routes compute in <5s, evidence inspector works with
 AI explanations (use templates), PDF export, 3D view, LIVE NASA download pipeline, mobile responsive.
 
 ### NEXT STEP
-Execute PROMPT 1: Initialize PATHWISE project structure.
+Execute PROMPT 1: Initialize VICTOR project structure.

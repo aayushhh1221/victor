@@ -1,4 +1,4 @@
-"""PATHWISE — Enumeration types."""
+"""VICTOR — Enumeration types."""
 from enum import Enum
 
 

@@ -1,113 +1,314 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── PATHWISE Design System ─────────────────────────────────────────────── */
-:root {
-  /* Core palette */
-  --pathwise-navy:     #0B1929;
-  --pathwise-navy-2:   #0F2540;
-  --pathwise-blue:     #1E88E5;
-  --pathwise-blue-2:   #1565C0;
-  --pathwise-accent:   #FF6F00;
-  --pathwise-surface:  #F8F9FA;
-  --pathwise-panel:    #0D1F33;
-  --pathwise-border:   rgba(255,255,255,0.08);
-  --pathwise-text:     #E8EDF3;
-  --pathwise-muted:    #8A9AB5;
+/* ── VICTOR Design System — Semantic Token Layer ───────────────────────────
+   All components reference these tokens ONLY.
+   Hex values exist here and in STRATEGY_META (types/index.ts) — nowhere else.
+   Tints of a token are derived at use-site with withAlpha() (utils/color.ts);
+   never by string-concatenating a hex alpha pair onto a var() reference.
+   ─────────────────────────────────────────────────────────────────────────── */
 
-  /* Strategy colours */
+/* ── Light theme (default / reference.png target) ──────────────────────── */
+:root,
+:root[data-theme="light"] {
+  /* Surfaces */
+  --surface:           #FFFFFF;
+  --surface-raised:    #F8F9FB;
+  --surface-sunken:    #F0F2F5;
+  --surface-overlay:   rgba(255, 255, 255, 0.92);
+
+  /* Borders */
+  --border:            rgba(0, 0, 0, 0.08);
+  --border-strong:     rgba(0, 0, 0, 0.15);
+  --border-subtle:     rgba(0, 0, 0, 0.04);
+
+  /* Text */
+  --text-primary:      #0F1923;
+  --text-secondary:    #3D5270;
+  --text-muted:        #6B7E96;
+  --text-disabled:     #A8B5C4;
+
+  /* Accent (NASA blue) */
+  --accent:            #1565C0;
+  --accent-hover:      #1044A3;
+  --accent-light:      rgba(21, 101, 192, 0.08);
+  --accent-lighter:    rgba(21, 101, 192, 0.04);
+  --accent-border:     rgba(21, 101, 192, 0.15);
+  /* Foreground for text/icons sitting ON a saturated accent/pin fill. */
+  --on-accent:         #FFFFFF;
+
+  /* Header */
+  --header-bg:         #FFFFFF;
+  --header-border:     rgba(0, 0, 0, 0.10);
+  --sidebar-bg:        #F8F9FB;
+  --sidebar-border:    rgba(0, 0, 0, 0.08);
+
+  /* Data mode colours */
+  --mode-live:          #16A34A;
+  --mode-live-bg:       rgba(22, 163, 74, 0.10);
+  --mode-live-border:   rgba(22, 163, 74, 0.25);
+  --mode-verified:      #1D4ED8;
+  --mode-verified-bg:   rgba(29, 78, 216, 0.08);
+  --mode-verified-border: rgba(29, 78, 216, 0.25);
+  --mode-demo:          #B45309;
+  --mode-demo-bg:       rgba(180, 83, 9, 0.10);
+  --mode-demo-border:   rgba(180, 83, 9, 0.25);
+
+  /* Semantic Status & Alerts */
+  --color-success:         #16A34A;
+  --color-success-bg:      rgba(22, 163, 74, 0.10);
+  --color-success-border:  rgba(22, 163, 74, 0.25);
+  --color-warning:         #D97706;
+  --color-warning-bg:      rgba(217, 119, 6, 0.10);
+  --color-warning-border:  rgba(217, 119, 6, 0.25);
+  --color-danger:          #DC2626;
+  --color-danger-bg:       rgba(220, 38, 38, 0.10);
+  --color-danger-border:   rgba(220, 38, 38, 0.25);
+  --color-info:            #2563EB;
+  --color-info-bg:         rgba(37, 99, 235, 0.10);
+  --color-info-border:     rgba(37, 99, 235, 0.25);
+
+  /* Risk meter levels */
+  --risk-low:              #22C55E;
+  --risk-moderate:         #EAB308;
+  --risk-high:             #F97316;
+  --risk-extreme:          #EF4444;
+
+  /* Map pins & canvas */
+  --map-base:              #C8A882;
+  --map-border:            #A0522D;
+  --pin-start:             #22C55E;
+  --pin-dest:              #EF4444;
+  --pin-stop:              #F59E0B;
+
+  /* Layer indicators */
+  --layer-imagery:         #78909C;
+  --layer-terrain:         #8B6914;
+  --layer-elevation:       #4B9CD3;
+  --layer-composition:     #8B5CF6;
+  --layer-thermal:         #EC4899;
+  --layer-dust:            #F59E0B;
+  --layer-science:         #22C55E;
+  --layer-hazard:          #EF4444;
+  --layer-traverse:        #A855F7;
+
+  /* Leaflet */
+  --leaflet-bg:         #C8A882;
+  --leaflet-tooltip-bg: rgba(255, 255, 255, 0.97);
+  --leaflet-tooltip-color: #0F1923;
+  --leaflet-tooltip-border: rgba(0, 0, 0, 0.15);
+
+  /* Skeleton shimmer */
+  --skeleton-a: #E8ECF0;
+  --skeleton-b: #D4DAE2;
+
+  /* Recharts */
+  --chart-grid: rgba(0, 0, 0, 0.06);
+  --chart-text:  #6B7E96;
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+:root[data-theme="dark"] {
+  /* Surfaces */
+  --surface:           #0B1929;
+  --surface-raised:    #0D1F33;
+  --surface-sunken:    #07101C;
+  --surface-overlay:   rgba(11, 25, 41, 0.95);
+
+  /* Borders */
+  --border:            rgba(255, 255, 255, 0.08);
+  --border-strong:     rgba(255, 255, 255, 0.15);
+  --border-subtle:     rgba(255, 255, 255, 0.04);
+
+  /* Text */
+  --text-primary:      #E8EDF3;
+  --text-secondary:    #A8B8CE;
+  --text-muted:        #6B7E96;
+  --text-disabled:     #3D5270;
+
+  /* Accent */
+  --accent:            #1E88E5;
+  --accent-hover:      #42A5F5;
+  --accent-light:      rgba(30, 136, 229, 0.15);
+  --accent-lighter:    rgba(30, 136, 229, 0.08);
+  --accent-border:     rgba(30, 136, 229, 0.30);
+  --on-accent:         #FFFFFF;
+
+  /* Header */
+  --header-bg:         #08131E;
+  --header-border:     rgba(255, 255, 255, 0.08);
+  --sidebar-bg:        #08131E;
+  --sidebar-border:    rgba(255, 255, 255, 0.06);
+
+  /* Data mode colours */
+  --mode-live:          #22C55E;
+  --mode-live-bg:       rgba(34, 197, 94, 0.15);
+  --mode-live-border:   rgba(34, 197, 94, 0.30);
+  --mode-verified:      #60A5FA;
+  --mode-verified-bg:   rgba(59, 130, 246, 0.15);
+  --mode-verified-border: rgba(59, 130, 246, 0.30);
+  --mode-demo:          #F59E0B;
+  --mode-demo-bg:       rgba(245, 158, 11, 0.20);
+  --mode-demo-border:   rgba(245, 158, 11, 0.30);
+
+  /* Semantic Status & Alerts */
+  --color-success:         #22C55E;
+  --color-success-bg:      rgba(34, 197, 94, 0.15);
+  --color-success-border:  rgba(34, 197, 94, 0.30);
+  --color-warning:         #F59E0B;
+  --color-warning-bg:      rgba(245, 158, 11, 0.15);
+  --color-warning-border:  rgba(245, 158, 11, 0.30);
+  --color-danger:          #EF4444;
+  --color-danger-bg:       rgba(239, 68, 68, 0.15);
+  --color-danger-border:   rgba(239, 68, 68, 0.30);
+  --color-info:            #60A5FA;
+  --color-info-bg:         rgba(96, 165, 250, 0.15);
+  --color-info-border:     rgba(96, 165, 250, 0.30);
+
+  /* Risk meter levels */
+  --risk-low:              #22C55E;
+  --risk-moderate:         #EAB308;
+  --risk-high:             #F97316;
+  --risk-extreme:          #EF4444;
+
+  /* Map pins & canvas */
+  --map-base:              #1A0A00;
+  --map-border:            #4A2000;
+  --pin-start:             #22C55E;
+  --pin-dest:              #EF4444;
+  --pin-stop:              #F59E0B;
+
+  /* Layer indicators */
+  --layer-imagery:         #78909C;
+  --layer-terrain:         #8B6914;
+  --layer-elevation:       #4B9CD3;
+  --layer-composition:     #8B5CF6;
+  --layer-thermal:         #EC4899;
+  --layer-dust:            #F59E0B;
+  --layer-science:         #22C55E;
+  --layer-hazard:          #EF4444;
+  --layer-traverse:        #A855F7;
+
+  /* Leaflet */
+  --leaflet-bg:         #1A0A00;
+  --leaflet-tooltip-bg: rgba(11, 25, 41, 0.97);
+  --leaflet-tooltip-color: #E8EDF3;
+  --leaflet-tooltip-border: rgba(255, 255, 255, 0.15);
+
+  /* Skeleton shimmer */
+  --skeleton-a: #0F2540;
+  --skeleton-b: #162D45;
+
+  /* Recharts */
+  --chart-grid: rgba(255, 255, 255, 0.05);
+  --chart-text:  #6B7E96;
+}
+
+/* ── Strategy colour data-encodings (theme-invariant) ──────────────────── */
+:root {
   --route-safest:          #22C55E;
   --route-fastest:         #3B82F6;
   --route-science-richest: #F97316;
   --route-balanced:        #A855F7;
-
-  /* Data mode colours */
-  --mode-live:          #22C55E;
-  --mode-verified:      #3B82F6;
-  --mode-demonstration: #F59E0B;
-
-  /* Confidence */
-  --conf-high:     #22C55E;
-  --conf-moderate: #F59E0B;
-  --conf-low:      #EF4444;
 
   /* Science tiers */
   --tier-1: #22C55E;
   --tier-2: #86EFAC;
   --tier-3: #FCD34D;
   --tier-4: #9CA3AF;
+  /* Ink for text on a tier-coloured chip. The tier palette is theme-invariant
+     and light-valued, so this stays dark in both themes. */
+  --on-tier: #0F1923;
 }
 
-/* ── Reset & Base ──────────────────────────────────────────────────────── */
+/* ── Reset & Base ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body {
   height: 100%;
   overflow: hidden;
-  background-color: var(--pathwise-navy);
-  color: var(--pathwise-text);
-  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Leaflet override ──────────────────────────────────────────────────── */
+/* ── Leaflet overrides ─────────────────────────────────────────────────── */
 .leaflet-container {
-  background: #1A0A00 !important;
+  background: var(--leaflet-bg) !important;
   font-family: 'Inter', sans-serif;
 }
 
 .leaflet-tooltip {
-  background: rgba(11,25,41,0.95) !important;
-  border: 1px solid rgba(255,255,255,0.15) !important;
-  color: #E8EDF3 !important;
+  background: var(--leaflet-tooltip-bg) !important;
+  border: 1px solid var(--leaflet-tooltip-border) !important;
+  color: var(--leaflet-tooltip-color) !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 12px !important;
   border-radius: 4px !important;
   padding: 6px 10px !important;
   white-space: nowrap !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
 }
 
-.leaflet-tooltip::before { border-top-color: rgba(255,255,255,0.15) !important; }
+.leaflet-tooltip::before {
+  border-top-color: var(--leaflet-tooltip-border) !important;
+}
 
 /* ── Scrollbars ────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
 
-/* ── Data mode badge ───────────────────────────────────────────────────── */
-.badge-live           { background: rgba(34,197,94,0.15); color: #22C55E; border: 1px solid #22C55E40; }
-.badge-verified       { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid #3B82F640; }
-.badge-demonstration  { background: rgba(245,158,11,0.2); color: #F59E0B; border: 1px solid #F59E0B40; }
-
-/* ── Panels ────────────────────────────────────────────────────────────── */
-.pathwise-panel {
-  background: var(--pathwise-panel);
-  border: 1px solid var(--pathwise-border);
+/* ── Panels ───────────────────────────────────────────────────────────── */
+.victor-panel {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 
-/* ── Typography ────────────────────────────────────────────────────────── */
+/* ── Typography ───────────────────────────────────────────────────────── */
 .section-heading {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--pathwise-muted);
+  color: var(--text-muted);
 }
 
 .metric-value {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 14px;
-  color: var(--pathwise-text);
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .metric-label {
   font-size: 10px;
-  color: var(--pathwise-muted);
+  color: var(--text-muted);
+}
+
+/* ── Data mode badges ─────────────────────────────────────────────────── */
+.badge-live {
+  background: var(--mode-live-bg);
+  color: var(--mode-live);
+  border: 1px solid var(--mode-live-border);
+}
+.badge-verified {
+  background: var(--mode-verified-bg);
+  color: var(--mode-verified);
+  border: 1px solid var(--mode-verified-border);
+}
+.badge-demonstration {
+  background: var(--mode-demo-bg);
+  color: var(--mode-demo);
+  border: 1px solid var(--mode-demo-border);
 }
 
 /* ── Science tier colours ──────────────────────────────────────────────── */
@@ -115,6 +316,12 @@ html, body {
 .tier-2 { color: var(--tier-2); }
 .tier-3 { color: var(--tier-3); }
 .tier-4 { color: var(--tier-4); }
+
+/* ── Route line legend ─────────────────────────────────────────────────── */
+.route-legend-safest          { background: var(--route-safest); }
+.route-legend-fastest         { background: var(--route-fastest); }
+.route-legend-science-richest { background: var(--route-science-richest); }
+.route-legend-balanced        { background: var(--route-balanced); }
 
 /* ── Animated status dot ───────────────────────────────────────────────── */
 @keyframes pulse-ring {
@@ -124,27 +331,135 @@ html, body {
 }
 .status-live { animation: pulse-ring 2s infinite; }
 
-/* ── Route line legend ─────────────────────────────────────────────────── */
-.route-legend-safest          { background: var(--route-safest); }
-.route-legend-fastest         { background: var(--route-fastest); }
-.route-legend-science-richest { background: var(--route-science-richest); }
-.route-legend-balanced        { background: var(--route-balanced); }
-
 /* ── Loading skeleton ──────────────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #0F2540 25%, #162D45 50%, #0F2540 75%);
+  background: linear-gradient(90deg, var(--skeleton-a) 25%, var(--skeleton-b) 50%, var(--skeleton-a) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
 }
 
 /* ── Recharts overrides ───────────────────────────────────────────────── */
-.recharts-text { fill: var(--pathwise-muted) !important; font-size: 11px; }
+.recharts-text {
+  fill: var(--chart-text) !important;
+  font-size: 11px;
+}
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: rgba(255,255,255,0.05) !important;
+  stroke: var(--chart-grid) !important;
 }
+
+/* ── Info card hover ───────────────────────────────────────────────────── */
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.info-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ── Risk meter bar ────────────────────────────────────────────────────── */
+.risk-bar-track {
+  background: var(--surface-sunken);
+  border-radius: 9999px;
+  height: 8px;
+  overflow: hidden;
+}
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+/* ── Sidebar nav item ──────────────────────────────────────────────────── */
+.nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: none;
+}
+.nav-item:hover {
+  background: var(--accent-lighter);
+  color: var(--text-secondary);
+}
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+/* ── Header tab ────────────────────────────────────────────────────────── */
+.header-tab {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.12s ease;
+  text-decoration: none;
+  display: inline-block;
+  position: relative;
+}
+.header-tab:hover { color: var(--text-primary); }
+.header-tab.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+.header-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+/* ── Opacity slider ─────────────────────────────────────────────────────── */
+input[type="range"].layer-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  outline: none;
+}
+input[type="range"].layer-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Science value badge ───────────────────────────────────────────────── */
+.value-high   { background: rgba(22,163,74,0.12); color: #15803D; border: 1px solid rgba(22,163,74,0.25); }
+.value-medium { background: rgba(202,138,4,0.12); color: #A16207; border: 1px solid rgba(202,138,4,0.25); }
+.value-low    { background: rgba(100,116,139,0.12); color: #475569; border: 1px solid rgba(100,116,139,0.20); }
+
+/* Light-on-dark variants for dark theme */
+:root[data-theme="dark"] .value-high   { background: rgba(34,197,94,0.15); color: #86EFAC; border-color: rgba(34,197,94,0.30); }
+:root[data-theme="dark"] .value-medium { background: rgba(245,158,11,0.15); color: #FCD34D; border-color: rgba(245,158,11,0.30); }
+:root[data-theme="dark"] .value-low    { background: rgba(156,163,175,0.12); color: #9CA3AF; border-color: rgba(156,163,175,0.20); }

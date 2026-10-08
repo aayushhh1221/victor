@@ -4,7 +4,7 @@
 
 ---
 
-### CONCEPT 1: "PATHWISE" — Multi-Objective Route Arbitration Engine
+### CONCEPT 1: "VICTOR" — Multi-Objective Route Arbitration Engine
 
 **Core thesis:** The map is the viewport into a multi-objective route optimization engine that computes, compares, and explains competing route strategies based on terrain traversability, hazard exposure, science value, and mission resource constraints — exposing the trade-offs that a mission planner must resolve.
 
@@ -80,7 +80,7 @@
 
 ## Scoring Matrix
 
-| Criterion (Weight) | C1: PATHWISE | C2: ORACLE | C3: GEOSYNTH | C4: STRATIGRAPHER | C5: COUNTERFACTUAL |
+| Criterion (Weight) | C1: VICTOR | C2: ORACLE | C3: GEOSYNTH | C4: STRATIGRAPHER | C5: COUNTERFACTUAL |
 |---|---|---|---|---|---|
 | Challenge relevance (20%) | 9 | 7 | 7 | 6 | 8 |
 | NASA-data depth (15%) | 9 | 7 | 8 | 9 | 8 |
@@ -96,7 +96,7 @@
 
 | Concept | Penalty | Reason |
 |---|---|---|
-| C1: PATHWISE | -0.3 | Route planning is common, but multi-objective + evidence is rare |
+| C1: VICTOR | -0.3 | Route planning is common, but multi-objective + evidence is rare |
 | C2: ORACLE | -0.5 | Environmental dashboards are common |
 | C3: GEOSYNTH | -0.8 | Science POI maps are very common |
 | C4: STRATIGRAPHER | -0.1 | Almost no teams will attempt geological cross-sections |
@@ -106,7 +106,7 @@
 
 | Concept | Score |
 |---|---|
-| **C1: PATHWISE** | **8.35** |
+| **C1: VICTOR** | **8.35** |
 | C5: COUNTERFACTUAL | 7.65 |
 | C4: STRATIGRAPHER | 7.30 |
 | C3: GEOSYNTH | 6.55 |
@@ -114,9 +114,9 @@
 
 ---
 
-## WINNING CONCEPT: PATHWISE (C1) + Selected Elements of C5
+## WINNING CONCEPT: VICTOR (C1) + Selected Elements of C5
 
-### Hybrid Architecture: PATHWISE with Scenario Layer
+### Hybrid Architecture: VICTOR with Scenario Layer
 
 Combine the core multi-objective route arbitration engine (C1) with the scenario comparison capability (C5) for maximum impact.
 
@@ -125,10 +125,10 @@ Combine the core multi-objective route arbitration engine (C1) with the scenario
 ## The Winning Concept Answers
 
 ### What are we building?
-**PATHWISE** — A multi-objective Marswalk planning platform that uses real NASA orbital data to compute, compare, and explain competing route strategies across Jezero Crater. It fuses 6 instrument datasets from 4 NASA Mars missions — elevation (MOLA/MGS), surface imagery (HiRISE/MRO), mineral composition (CRISM/MRO), thermal properties (THEMIS/Odyssey), atmospheric context (MCS/MRO), and reference traverse data (Perseverance/Mars 2020) — into a traversability + science-value cost grid, then runs multi-objective route optimization to generate SAFEST, FASTEST, SCIENCE-RICHEST, and BALANCED route strategies — exposing the trade-offs that a mission planner must resolve.
+**VICTOR** — A multi-objective Marswalk planning platform that uses real NASA orbital data to compute, compare, and explain competing route strategies across Jezero Crater. It fuses 6 instrument datasets from 4 NASA Mars missions — elevation (MOLA/MGS), surface imagery (HiRISE/MRO), mineral composition (CRISM/MRO), thermal properties (THEMIS/Odyssey), atmospheric context (MCS/MRO), and reference traverse data (Perseverance/Mars 2020) — into a traversability + science-value cost grid, then runs multi-objective route optimization to generate SAFEST, FASTEST, SCIENCE-RICHEST, and BALANCED route strategies — exposing the trade-offs that a mission planner must resolve.
 
 ### Why does it solve the real problem?
-A real Marswalker doesn't need a pretty map — they need to know: "Given my constraints (time, energy, suit limits, science objectives), which path should I take, and why?" PATHWISE computes defensible answers to this question and shows the evidence.
+A real Marswalker doesn't need a pretty map — they need to know: "Given my constraints (time, energy, suit limits, science objectives), which path should I take, and why?" VICTOR computes defensible answers to this question and shows the evidence.
 
 ### Why does NASA data matter?
 NASA data IS the computation substrate. MOLA elevation drives slope cost. CRISM minerals drive science value. HiRISE texture drives roughness estimation. THEMIS thermal inertia drives surface material classification. Without NASA data, there is no route intelligence.

@@ -1,4 +1,4 @@
-"""PATHWISE — Data service: loads and serves all precomputed NASA grids."""
+"""VICTOR — Data service: loads and serves all precomputed NASA grids."""
 from __future__ import annotations
 import json
 import logging
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class DataService:
     """
-    Central data service for PATHWISE.
+    Central data service for VICTOR.
 
     Loads pre-processed NASA grids from cache directory.
     Detects DataMode: VERIFIED_SNAPSHOT if real NASA data present,
@@ -61,12 +61,29 @@ class DataService:
                 raise ValueError(f"{name}.npy shape={arr.shape}, expected (300,300)")
             setattr(self, f"_{name}", arr)
 
+        # Optional grids. These arrive as new NASA sources are ingested, so a
+        # missing one is a normal state, not an error — the layer that depends
+        # on it reports itself unavailable rather than the app failing to boot.
+        self._optional: dict[str, np.ndarray] = {}
+        for name in ["thermal_proxy", "imagery", "dust"]:
+            path = self.cache_dir / f"{name}.npy"
+            if path.exists():
+                arr = np.load(path)
+                if arr.shape == (300, 300):
+                    self._optional[name] = arr
+                else:
+                    logger.warning(f"{name}.npy shape={arr.shape}; ignoring")
+        if self._optional:
+            logger.info(f"Optional grids loaded: {sorted(self._optional)}")
+
     def _load_metadata(self) -> None:
         path = self.cache_dir / "grid_metadata.json"
         if path.exists():
             with open(path) as f:
-                self._metadata = GridMetadata(**json.load(f))
+                self._raw_metadata = json.load(f)
+            self._metadata = GridMetadata(**self._raw_metadata)
         else:
+            self._raw_metadata = {}
             self._metadata = GridMetadata()  # defaults are correct
 
     def _load_science_targets(self) -> None:
@@ -102,20 +119,40 @@ class DataService:
 
     def _detect_data_mode(self) -> None:
         """
-        Determine data mode from provenance metadata.
-        Real NASA data → VERIFIED_SNAPSHOT
-        Synthetic fallback only → DEMONSTRATION
+        Determine data mode from the authoritative value in grid_metadata.json.
+
+        That value is computed by backend.utils.provenance.ProvenanceRegistry,
+        which requires BOTH that no source is synthetic AND that at least two
+        distinct NASA missions contributed — the challenge contract makes
+        multi-mission integration mandatory, not optional.
+
+        This previously inferred the mode with `any(not startswith("SYNTHETIC"))`,
+        which meant a single real product among synthetic ones was enough to
+        advertise VERIFIED_SNAPSHOT. The fallback below keeps that tolerance for
+        legacy caches but demands *every* source be real, not just one.
         """
-        prov_path = self.cache_dir / "provenance.json"
-        if not prov_path.exists():
+        meta_path = self.cache_dir / "grid_metadata.json"
+        if meta_path.exists():
+            try:
+                with open(meta_path) as f:
+                    declared = json.load(f).get("data_mode")
+                if declared in {m.value for m in DataMode}:
+                    self._data_mode = DataMode(declared)
+                    return
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Could not read data_mode from grid_metadata.json: {e}")
+
+        if not self._provenance:
             self._data_mode = DataMode.DEMONSTRATION
             return
-        # Check if provenance contains real PDS product IDs (not synthetic)
-        has_real = any(
+
+        all_real = all(
             p.pds_product_id and not p.pds_product_id.startswith("SYNTHETIC")
             for p in self._provenance
         )
-        self._data_mode = DataMode.VERIFIED_SNAPSHOT if has_real else DataMode.DEMONSTRATION
+        self._data_mode = (
+            DataMode.VERIFIED_SNAPSHOT if all_real else DataMode.DEMONSTRATION
+        )
 
     # ── Public accessors ──────────────────────────────────────────────────────
 
@@ -162,6 +199,29 @@ class DataService:
 
     def get_provenance(self) -> list[ProvenanceRecord]:
         return self._provenance
+
+    @property
+    def compliance(self) -> dict:
+        """Challenge data-requirement status, as computed at ingestion time."""
+        return self._raw_metadata.get("compliance", {}) if self._raw_metadata else {}
+
+    @property
+    def data_label(self) -> str:
+        """Banner text matching the active data mode."""
+        if self._raw_metadata and self._raw_metadata.get("label"):
+            return self._raw_metadata["label"]
+        return (
+            "VERIFIED SNAPSHOT — real NASA open data"
+            if self._data_mode is DataMode.VERIFIED_SNAPSHOT
+            else "DEMONSTRATION — NOT REAL NASA DATA"
+        )
+
+    def has_grid(self, name: str) -> bool:
+        """True when an optional grid has been ingested."""
+        return name in getattr(self, "_optional", {})
+
+    def optional_grid(self, name: str) -> Optional[np.ndarray]:
+        return getattr(self, "_optional", {}).get(name)
 
     def get_traversability_grid(self) -> np.ndarray:
         return self._traversability

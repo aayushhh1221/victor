@@ -1,5 +1,5 @@
 /**
- * PATHWISE — Mars coordinate transformation utility.
+ * VICTOR — Mars coordinate transformation utility.
  *
  * Explicit affine transformation mapping Mars planetocentric lat/lon
  * to Leaflet pixel coordinates and back.

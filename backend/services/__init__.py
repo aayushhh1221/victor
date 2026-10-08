@@ -1,1 +1,1 @@
-"""PATHWISE services package."""
+"""VICTOR services package."""

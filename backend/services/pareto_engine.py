@@ -1,4 +1,4 @@
-"""PATHWISE — Pareto dominance analysis engine."""
+"""VICTOR — Pareto dominance analysis engine."""
 from __future__ import annotations
 from ..models.domain import Route
 from ..models.enums import ParetoStatus

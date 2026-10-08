@@ -1,4 +1,6 @@
-# PATHWISE — Multi-Objective Marswalk Arbitration Engine
+# VICTOR
+
+### Voyage Intelligence for Terrain-aware Cartographic Optimization & Routing
 
 > **NASA Space Apps Challenge 2026**  
 > **Challenge:** *Interplanetary Survival Guide: Martian Map*  
@@ -9,37 +11,49 @@
 
 ## 🚀 Overview
 
-**PATHWISE** is a multi-objective planetary traversal arbitration engine built for future astronaut Extravehicular Activities (EVAs) across Jezero Crater. 
+**VICTOR** is a multi-objective planetary traversal arbitration engine built for future astronaut Extravehicular Activities (EVAs) across Jezero Crater. 
 
-Unlike conventional navigation tools that simply calculate the shortest distance, **PATHWISE recognizes that on Mars, optimizing a single objective is mission-fatal**. Mission commanders must balance four competing priorities:
+Unlike conventional navigation tools that simply calculate the shortest distance, **VICTOR recognizes that on Mars, optimizing a single objective is mission-fatal**. Mission commanders must balance four competing priorities:
 - **Astronaut Safety:** Avoiding steep scarps, blocky crater ejecta, and loose dust mantles.
 - **EVA Consumables:** Staying strictly within life-support envelopes (suit oxygen, battery, thermal).
 - **Scientific Yield:** Maximizing access to high-value astrobiological targets (carbonates, deltaic sediments).
 - **Terrain Traversability:** Navigating trafficable slopes and firm regolith.
 
-PATHWISE simultaneously evaluates four Pareto-optimal route strategies (**SAFEST**, **FASTEST**, **SCIENCE-RICHEST**, and **BALANCED**), mathematically proves their non-dominance, and delivers per-segment NASA instrument evidence with analytical counterfactual explanations.
+VICTOR simultaneously evaluates four Pareto-optimal route strategies (**SAFEST**, **FASTEST**, **SCIENCE-RICHEST**, and **BALANCED**), mathematically proves their non-dominance, and delivers per-segment NASA instrument evidence with analytical counterfactual explanations.
 
 ---
 
 ## 🛰️ NASA Data Architecture
 
-PATHWISE fuses **6 instrument datasets across 4 NASA Mars missions** into a 300×300 non-square computation grid (~53.2 km × ~56.1 km):
+> ### ⚠️ Current data status: `DEMONSTRATION`
+>
+> **The grids this build computes over are synthetically generated, not real NASA products.**
+> `scripts/data_pipeline.py` falls back to `scripts/generate_synthetic_fallback.py`, and the
+> active mode is reported honestly at runtime by `/api/v1/health` and `/api/v1/map/layers`.
+>
+> Real data ingestion is the current priority — see
+> [`docs/PROJECT_STATUS_REPORT.md`](docs/PROJECT_STATUS_REPORT.md) (BLOCKER-1). The table
+> below is the **target** architecture; the Status column states what is actually wired today.
 
-| Dataset | Mission / Instrument | Processing / Resolution | Role in PATHWISE |
+VICTOR is designed to fuse the following instrument datasets into a 300×300 non-square computation grid (~53.2 km × ~56.1 km):
+
+| Dataset | Mission / Instrument | Role in VICTOR | Status |
 |---|---|---|---|
-| **MOLA** | Mars Global Surveyor (MGS) | 128 ppd MEGDR digital elevation model | Topography, slope computation, steep scarp avoidance |
-| **HiRISE** | Mars Reconnaissance Orbiter (MRO) | High-resolution visual imagery | Base visual context (display-only) |
-| **CRISM** | Mars Reconnaissance Orbiter (MRO) | Targeted hyperspectral cubes | Mineral identification & science tier scoring |
-| **THEMIS** | 2001 Mars Odyssey | Thermal inertia (TI) infrared mosaic | Surface mantling characterization & rock hazard refinement |
-| **MCS** | Mars Reconnaissance Orbiter (MRO) | Limb atmospheric sounding | Regional/seasonal dust context (labeled as contextual) |
-| **Perseverance** | Mars 2020 | Sol 1–1000 rover traverse telemetry | Ground-truth reference traverse for validation |
+| **MOLA** | Mars Global Surveyor (MGS) | Topography, slope, steep scarp avoidance | ⚠️ Synthetic proxy grid |
+| **CRISM** | Mars Reconnaissance Orbiter (MRO) | Mineral identification & science tier scoring | ⚠️ Synthetic tier model |
+| **THEMIS** | 2001 Mars Odyssey | Surface mantling & rock hazard refinement | ⚠️ Synthetic TI proxy |
+| **Perseverance** | Mars 2020 | Reference traverse for orientation | ⚠️ 10 hardcoded waypoints |
+| **HiRISE** | Mars Reconnaissance Orbiter (MRO) | Base visual context (display-only) | ❌ Not ingested — base map is a colormap of the elevation grid |
+| **MCS** | Mars Reconnaissance Orbiter (MRO) | Regional/seasonal dust context | ❌ Not implemented |
+
+**Science values are model-derived scores throughout, never direct measurements** — this is surfaced in the UI and in every API response that carries them.
 
 ---
 
 ## ⚡ Key Technical Innovations
 
 1. **Non-Negative Multi-Objective A*:**  
-   Standard pathfinders cannot seek rewards without risking negative-cost cycles. PATHWISE parameterizes science-seeking as a non-negative penalty `weight * (1 - science_value)`, preserving strict A* optimality and admissibility.
+   Standard pathfinders cannot seek rewards without risking negative-cost cycles. VICTOR parameterizes science-seeking as a non-negative penalty `weight * (1 - science_value)`, preserving strict A* optimality and admissibility.
 2. **Deterministic Pareto Dominance Analysis:**  
    Every route calculation is evaluated across distance, time, hazard, and science. The engine proves which routes are **NON_DOMINATED**, guaranteeing authentic trade-offs.
 3. **Per-Segment Evidence Inspector:**  
@@ -57,51 +71,68 @@ PATHWISE fuses **6 instrument datasets across 4 NASA Mars missions** into a 300�
 - Python 3.11+
 - Node.js 18+ & npm 9+
 
-### 1. Backend Setup
+### 1. Install dependencies and generate data
+
 ```bash
-# Navigate to backend directory
-cd backend
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Start the FastAPI server (runs on port 8000)
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+pip install -r backend/requirements.txt
 ```
-API Documentation will be live at: `http://localhost:8000/docs`  
-Health check endpoint: `http://localhost:8000/api/v1/health`
 
-### 2. Frontend Setup
+The backend cannot serve routes without the computation grids, and the test suite
+silently skips 24 of its 47 tests when they are missing. Generate them with:
+
 ```bash
-# Navigate to frontend directory in a new terminal
+python scripts/bootstrap.py
+```
+
+This generates the data grids and the map tile pyramid. Both steps are idempotent and
+skip themselves if their output already exists. Pass `--skip-tiles` to generate grids
+only — tile generation takes several minutes.
+
+### 2. Start the backend
+
+**Run from the repository root, not from `backend/`.** `backend/main.py` uses relative
+imports, so it must be loaded as a package:
+
+```bash
+uvicorn backend.main:app --reload --port 8000
+```
+
+API documentation: `http://localhost:8000/docs`
+Health check (reports the active data mode): `http://localhost:8000/api/v1/health`
+
+### 3. Start the frontend
+
+```bash
 cd frontend
-
-# Install dependencies (using legacy peer deps for Leaflet compatibility)
-npm install --legacy-peer-deps
-
-# Start the Next.js development server
+npm install
 npm run dev
 ```
-Open `http://localhost:3000` (automatically redirects to `http://localhost:3000/planner`).
+
+Open `http://localhost:3000` (redirects to `/planner`).
 
 ---
 
 ## 🧪 Automated Test Suite
 
-All 47 backend integration and unit tests pass with 100% coverage across geodesy, pathfinding, science analysis, and REST APIs:
+The suite contains **47 tests across four modules**. Run from the repository root:
 
 ```bash
-# Run pytest from repository root
 pytest backend/tests -v
 ```
 
-### Test Suite Highlights:
+**All 47 pass only when the data grids are present** — run `python scripts/bootstrap.py`
+first. Without them the suite reports `16 passed, 24 skipped, 7 errors`, which looks
+far healthier than it is. One performance test is also marginal and may fail on a
+full-suite run; both issues are documented in
+[`docs/PROJECT_STATUS_REPORT.md`](docs/PROJECT_STATUS_REPORT.md) (HIGH-6, HIGH-7).
+
+### Test suite coverage:
 - `backend/tests/test_mars_geo.py`: Mars haversine accuracy, bearing, and grid round-trip transformations.
 - `backend/tests/test_route_engine.py`: A* feasibility, constraint compliance (slope thresholds), determinism, metric consistency, and non-negative cost decomposition.
 - `backend/tests/test_science_engine.py`: Runtime detour calculation, monotonic distance profiles, and science discovery analysis.
 - `backend/tests/test_api.py`: FastAPI endpoints, health checks, route computation lifecycle, evidence inspection, and scenario diffing.
 
-To verify frontend TypeScript compilation and production bundle:
+To verify frontend TypeScript compilation and the production bundle:
 ```bash
 cd frontend
 npm run build
@@ -112,7 +143,7 @@ npm run build
 ## 📂 Repository Structure
 
 ```
-d:/NSAC 2026/
+NSAC 2026/
 ├── backend/
 │   ├── main.py                    # FastAPI application entry point
 │   ├── config.py                  # App configuration & CORS settings
@@ -134,19 +165,18 @@ d:/NSAC 2026/
 │   │   ├── science_engine.py      # Science target scoring & detours
 │   │   └── scenario_engine.py     # Constraint sensitivity engine
 │   ├── utils/
-│   │   ├── mars_geo.py            # Planetocentric geodesy math
-│   │   └── provenance.py          # NASA instrument attribution tracking
+│   │   └── mars_geo.py            # Planetocentric geodesy math
 │   ├── data/
-│   │   ├── cache/                 # 300×300 NumPy grids (.npy) & metadata
-│   │   ├── tiles/                 # Pre-rendered PNG map tiles (zoom 1–5)
+│   │   ├── cache/                 # 300×300 NumPy grids (.npy) & metadata — committed
+│   │   ├── tiles/                 # Pre-rendered PNG map tiles (zoom 1–5) — generated
 │   │   └── demo/                  # Precomputed demo scenarios
-│   └── tests/                     # 47 comprehensive pytest test cases
+│   └── tests/                     # 47 pytest test cases across 4 modules
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── layout.tsx         # Root layout with NASA metadata
 │   │   │   ├── page.tsx           # Redirect to /planner
-│   │   │   ├── globals.css        # PATHWISE design system & CSS tokens
+│   │   │   ├── globals.css        # VICTOR design system & CSS tokens
 │   │   │   └── planner/page.tsx   # Interactive Mars mission planner shell
 │   │   ├── components/
 │   │   │   ├── common/Header.tsx  # Brand header & active DataMode badge
@@ -163,16 +193,19 @@ d:/NSAC 2026/
 │   ├── package.json
 │   └── tsconfig.json
 ├── docs/
+│   ├── PROJECT_STATUS_REPORT.md   # Current status, ranked findings, compliance matrix
 │   ├── BUILD_STATE.md             # Implementation milestone tracker
+│   ├── challenge-contract.md      # Binding challenge requirements
 │   ├── demo-script.md             # 7-minute presentation walkthrough
 │   ├── judge-qa.md                # Technical defense & FAQ
-│   ├── PATHWISE-blueprint-part1.md# System architecture blueprint
-│   ├── PATHWISE-blueprint-part2.md# Implementation prompts & interfaces
+│   ├── VICTOR-blueprint-part1.md# System architecture blueprint
+│   ├── VICTOR-blueprint-part2.md# Implementation prompts & interfaces
 │   ├── geospatial-methodology.md  # Mars coordinate math documentation
 │   └── nasa-data-catalog.md       # Instrument provenance specifications
 └── scripts/
+    ├── bootstrap.py               # One-command setup for a fresh clone
     ├── data_pipeline.py           # NASA data acquisition pipeline
-    ├── generate_synthetic_fallback.py # High-fidelity Jezero grid generator
+    ├── generate_synthetic_fallback.py # Synthetic Jezero grid generator
     └── generate_tiles.py          # Multiscale PNG tile generator
 ```
 

@@ -1,4 +1,4 @@
-"""PATHWISE — FastAPI dependency injection."""
+"""VICTOR — FastAPI dependency injection."""
 from functools import lru_cache
 from .services.data_service import DataService
 from .services.route_engine import RouteEngine

@@ -1,9 +1,9 @@
-# PATHWISE — Complete Implementation Blueprint (Part 1)
+# VICTOR — Complete Implementation Blueprint (Part 1)
 # Architecture, Data, Science, Route Intelligence
 
 ## 1. Winning Architecture
 
-**PATHWISE: Multi-Objective Marswalk Arbitration Engine**
+**VICTOR: Multi-Objective Marswalk Arbitration Engine**
 
 A planetary mission planning platform that computes, compares, and explains competing EVA route strategies for Jezero Crater using fused NASA orbital data. The system generates 4 route strategies (SAFEST, FASTEST, SCIENCE-RICHEST, BALANCED), enables scenario comparison, and provides per-segment evidence provenance.
 
@@ -11,7 +11,7 @@ A planetary mission planning platform that computes, compares, and explains comp
 
 ## 2. Why This Architecture Wins
 
-| Requirement | How PATHWISE addresses it |
+| Requirement | How VICTOR addresses it |
 |---|---|
 | Layered Mars map | Multi-layer map with toggle controls (MOLA, HiRISE, CRISM, THEMIS, hazards, science, routes) |
 | Multi-mission data | Fuses 6 instrument datasets from 4 NASA Mars missions into unified computation grid |

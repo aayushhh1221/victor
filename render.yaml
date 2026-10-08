@@ -1,0 +1,84 @@
+# VICTOR — Render deployment blueprint.
+#
+# Two services, both on Render's free tier:
+#
+#   victor-api  — FastAPI backend (Web Service)
+#   victor-web  — Next.js static export (Static Site)
+#
+# Why the frontend is a Static Site, not a Web Service: free Static Sites are
+# always-on and CDN-backed, while free Web Services spin down after 15 minutes
+# idle with a ~50 s cold start. Splitting them means the UI loads instantly even
+# while the API is still waking up — which matters during judging.
+#
+# Known free-tier constraints this config works around:
+#
+#   * Ephemeral filesystem. Nothing may be generated at runtime. The data grids
+#     are committed and the map tiles are pre-rendered, so the API only reads
+#     finished artefacts. Never add a build step that runs the ingestion
+#     pipeline — it needs GDAL and would exceed the build limits.
+#
+#   * 512 MB RAM / slow builds. backend/requirements.txt is deliberately minimal
+#     (no rasterio/GDAL, scipy, or Pillow — those live in
+#     requirements-pipeline.txt and are developer-only).
+#
+#   * 750 instance-hours/month ≈ 744 hours in a 31-day month. Keeping the API
+#     warm around the clock with an uptime pinger would consume essentially the
+#     whole allowance. Enable any such pinger only shortly before the event.
+#
+#   * In-memory computation store. Route results are persisted to Postgres when
+#     DATABASE_URL is set (point it at the Supabase connection string). Without
+#     it the store is memory-only and a spin-down invalidates computation_ids,
+#     so segment-evidence lookups then 404. Either set DATABASE_URL or rely on
+#     /api/v1/routes/demo, which is served from a committed precomputed file and
+#     costs no computation.
+#
+#   * Supabase free tier pauses a project after 7 days of inactivity. A project
+#     deployed and left alone will be asleep on demo day — verify it is awake
+#     beforehand.
+
+services:
+  - type: web
+    name: victor-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    # Single worker: 512 MB does not have room for more, and the grids are
+    # loaded into memory once at startup by the lifespan handler.
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      # Set this to the deployed victor-web URL after its first deploy, so the
+      # browser is permitted to call this API.
+      - key: FRONTEND_URL
+        sync: false
+      # Optional comma-separated extra origins (preview deploys, custom domain).
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Supabase Postgres connection string. Without it the computation store is
+      # in-memory and will not survive a spin-down.
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: victor-web
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    # Next.js `output: 'export'` writes here.
+    staticPublishPath: out
+    envVars:
+      # Must point at the deployed victor-api URL. Baked in at build time by
+      # Next.js, so changing it requires a redeploy of this service.
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+    routes:
+      # Static export produces real files per route; send anything unmatched to
+      # the planner rather than a 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,14 +1,34 @@
+# VICTOR — production runtime dependencies ONLY.
+#
+# This is what Render installs. Keep it minimal: the free tier gives 512 MB RAM
+# and a slow build, and the heavy geospatial stack is not needed to SERVE the
+# app — only to BUILD its data.
+#
+# Deliberately NOT here:
+#   rasterio / GDAL  — pulls ~100 MB+ of native libs; used only by
+#                      scripts/fetch_nasa_data.py to ingest NASA rasters locally.
+#   scipy            — used only by the ingestion pipeline's resampling.
+#   Pillow           — used only by scripts/generate_tiles.py to render tiles.
+#   requests         — used only by the ingestion pipeline.
+#   pytest / httpx   — test-only.
+#
+# Data grids are committed and tiles are pre-rendered, so the server reads
+# finished .npy arrays and PNGs. Nothing is generated at runtime.
+#
+# For local development or to re-ingest NASA data, also install:
+#   pip install -r requirements-pipeline.txt
+#   pip install -r requirements-dev.txt
+
 fastapi>=0.104.0
-uvicorn>=0.24.0
+uvicorn[standard]>=0.24.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
 numpy>=1.26.0
-scipy>=1.11.0
-Pillow>=10.1.0
-httpx>=0.25.0
 python-dotenv>=1.0.0
-rasterio>=1.3.0
-requests>=2.31.0
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-httpx>=0.25.0
+
+# Postgres driver for the computation store (Supabase). Needed in production
+# because a free-tier service spins down after 15 minutes idle, which would
+# otherwise invalidate every computation_id and 404 all segment-evidence
+# lookups. Import is guarded: with no DATABASE_URL the store is in-memory and
+# the app still runs fully offline.
+psycopg[binary]>=3.1.0

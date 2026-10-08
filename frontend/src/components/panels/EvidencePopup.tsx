@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { SegmentEvidenceResponse } from '@/types';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
+import { withAlpha } from '@/utils/color';
 
 interface EvidencePopupProps {
   evidence: SegmentEvidenceResponse;
@@ -23,32 +24,37 @@ export default function EvidencePopup({
   const tierLabel = ['', 'Biosignature-relevant', 'Water interaction', 'Geological context', 'Baseline'][
     evidence.science_tier
   ];
-  const tierColor = ['', '#22C55E', '#86EFAC', '#FCD34D', '#9CA3AF'][evidence.science_tier];
+  const tierColor = ['', 'var(--tier-1)', 'var(--tier-2)', 'var(--tier-3)', 'var(--tier-4)'][evidence.science_tier];
 
   const confColor: Record<string, string> = {
-    HIGH: '#22C55E',
-    MODERATE: '#F59E0B',
-    LOW: '#EF4444',
+    HIGH: 'var(--color-success)',
+    MODERATE: 'var(--color-warning)',
+    LOW: 'var(--color-danger)',
   };
+  /** Unrecognised confidence levels get a neutral token, never a raw hex. */
+  const confidenceColor = (level: string) => confColor[level] ?? 'var(--text-muted)';
 
   return (
     <div
       className="absolute bottom-4 right-4 w-80 rounded-lg shadow-2xl overflow-hidden z-50"
-      style={{ background: '#0D1F33', border: '1px solid rgba(255,255,255,0.12)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}
       id="evidence-popup"
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 py-2 border-b"
-        style={{ borderColor: 'rgba(255,255,255,0.08)', background: '#0B1929' }}
+        style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}
       >
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: strategyColor }} />
-          <span className="text-xs font-semibold text-gray-200">{strategyName} — Segment {evidence.segment_id}</span>
+          <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {strategyName} — Segment {evidence.segment_id}
+          </span>
         </div>
         <button
           onClick={onClose}
-          className="text-gray-500 hover:text-gray-300 transition-colors"
+          className="transition-colors"
+          style={{ color: 'var(--text-muted)' }}
           id="evidence-popup-close"
         >
           <X size={14} />
@@ -65,7 +71,7 @@ export default function EvidencePopup({
               { label: 'Slope', value: `${evidence.slope_deg.toFixed(1)}°` },
               { label: 'Traversability', value: evidence.traversability_cost.toFixed(2) },
             ].map(({ label, value }) => (
-              <div key={label} className="pathwise-panel px-2 py-1.5">
+              <div key={label} className="victor-panel px-2 py-1.5">
                 <p className="metric-label">{label}</p>
                 <p className="metric-value text-sm">{value}</p>
               </div>
@@ -76,27 +82,27 @@ export default function EvidencePopup({
         {/* Surface material */}
         <section>
           <p className="section-heading mb-1">Surface Material</p>
-          <div className="pathwise-panel p-2">
-            <p className="text-xs text-gray-200">{evidence.surface_material}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{evidence.mineral_class}</p>
+          <div className="victor-panel p-2">
+            <p className="text-xs" style={{ color: 'var(--text-primary)' }}>{evidence.surface_material}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{evidence.mineral_class}</p>
           </div>
         </section>
 
         {/* Science */}
         <section>
           <p className="section-heading mb-1">Science Priority</p>
-          <div className="pathwise-panel p-2">
+          <div className="victor-panel p-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-mono font-bold" style={{ color: tierColor }}>
                 {evidence.science_value.toFixed(4)}
               </span>
               <span className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                    style={{ background: `${tierColor}25`, color: tierColor }}>
+                    style={{ background: withAlpha(tierColor, 15), color: tierColor }}>
                 Tier {evidence.science_tier}
               </span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-0.5">{tierLabel}</p>
-            <p className="text-[10px] text-amber-600 mt-1">
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{tierLabel}</p>
+            <p className="text-[10px] mt-1" style={{ color: 'var(--mode-demo)' }}>
               MODEL score — not a direct NASA measurement
             </p>
           </div>
@@ -105,23 +111,23 @@ export default function EvidencePopup({
         {/* Hazard */}
         <section>
           <p className="section-heading mb-1">Hazard</p>
-          <div className="pathwise-panel p-2">
+          <div className="victor-panel p-2">
             <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-800 rounded-full h-1.5">
+              <div className="flex-1 rounded-full h-1.5" style={{ background: 'var(--surface-sunken)' }}>
                 <div
                   className="h-1.5 rounded-full"
                   style={{
                     width: `${(evidence.hazard_score / 10) * 100}%`,
-                    background: evidence.hazard_score < 3 ? '#22C55E' :
-                               evidence.hazard_score < 6 ? '#F59E0B' : '#EF4444',
+                    background: evidence.hazard_score < 3 ? 'var(--risk-low)' :
+                               evidence.hazard_score < 6 ? 'var(--risk-moderate)' : 'var(--risk-extreme)',
                   }}
                 />
               </div>
-              <span className="text-xs font-mono text-gray-300">
+              <span className="text-xs font-mono" style={{ color: 'var(--text-primary)' }}>
                 {evidence.hazard_score.toFixed(2)}/10
               </span>
             </div>
-            <p className="text-[10px] text-gray-600 mt-1">
+            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
               0.5×slope + 0.3×rock + 0.2×surface_dust_risk (THEMIS TI)
             </p>
           </div>
@@ -145,15 +151,15 @@ export default function EvidencePopup({
                 const reductionPct = Math.max(0, ((total - val) / total) * 100);
                 return (
                   <div key={key} className="flex items-center justify-between text-xs py-0.5">
-                    <span className="text-gray-400 capitalize">{label}</span>
+                    <span className="capitalize" style={{ color: 'var(--text-secondary)' }}>{label}</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-gray-300">{val.toFixed(4)}</span>
-                      <span className="text-[10px] text-emerald-400 font-mono">(-{reductionPct.toFixed(0)}%)</span>
+                      <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{val.toFixed(4)}</span>
+                      <span className="text-[10px] font-mono" style={{ color: 'var(--color-success)' }}>(-{reductionPct.toFixed(0)}%)</span>
                     </div>
                   </div>
                 );
               })}
-              <p className="text-[10px] text-gray-600 mt-1">
+              <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
                 Analytical: cost_without_X = total − X contribution
               </p>
             </div>
@@ -173,23 +179,23 @@ export default function EvidencePopup({
           {showSources && (
             <div className="mt-2 space-y-2">
               {evidence.data_sources.map((src) => (
-                <div key={src.layer} className="pathwise-panel p-2">
+                <div key={src.layer} className="victor-panel p-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-300 font-medium capitalize">{src.layer}</span>
+                    <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-primary)' }}>{src.layer}</span>
                     <span
                       className="text-[9px] px-1.5 py-0.5 rounded font-medium"
                       style={{
-                        background: `${confColor[src.confidence] ?? '#888'}25`,
-                        color: confColor[src.confidence] ?? '#888',
+                        background: withAlpha(confidenceColor(src.confidence), 15),
+                        color: confidenceColor(src.confidence),
                       }}
                     >
                       {src.confidence}
                     </span>
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{src.instrument}</p>
-                  <p className="text-[10px] text-gray-600">{src.mission} · {src.resolution_m}m res.</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{src.instrument}</p>
+                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{src.mission} · {src.resolution_m}m res.</p>
                   {src.label && (
-                    <p className="text-[10px] text-amber-600 mt-0.5">{src.label}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-warning)' }}>{src.label}</p>
                   )}
                 </div>
               ))}

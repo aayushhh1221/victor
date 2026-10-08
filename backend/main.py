@@ -1,4 +1,4 @@
-"""PATHWISE — FastAPI application entry point."""
+"""VICTOR — FastAPI application entry point."""
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -7,16 +7,16 @@ from fastapi.responses import JSONResponse
 from .config import settings
 from .services.data_service import DataService
 from .dependencies import init_services
-from .routers import route, science, scenario, map as map_router
+from .routers import route, science, scenario, environment, map as map_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
-logger = logging.getLogger("pathwise")
+logger = logging.getLogger("victor")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load all NASA grids on startup."""
-    logger.info("PATHWISE starting — loading data grids...")
+    logger.info("VICTOR starting — loading data grids...")
     ds = DataService()
     try:
         ds.load()
@@ -27,24 +27,27 @@ async def lifespan(app: FastAPI):
         logger.warning("Starting in degraded mode — routes will not be available until data is loaded.")
         # We still start the app so the health endpoint responds
     yield
-    logger.info("PATHWISE shutting down.")
+    logger.info("VICTOR shutting down.")
 
 
 app = FastAPI(
-    title="PATHWISE API",
+    title="VICTOR API",
     description=(
-        "Multi-Objective Marswalk Arbitration Engine. "
+        "Multi-Objective Marswalk Arbitration Engine for Jezero Crater, Mars. "
         "NASA Space Apps Challenge 2026. "
-        "Real NASA data from 6 instrument datasets across 4 Mars missions."
+        "Data provenance — including whether the active grids are real NASA products "
+        "or a synthetic demonstration set — is reported by /api/v1/health and "
+        "/api/v1/map/layers. Science values are model-derived scores, not measurements."
     ),
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# CORS for local development
+# CORS. Origins come from config so a deployed frontend can be added by
+# environment variable without a code change (see Settings.cors_origins).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,6 +57,7 @@ app.add_middleware(
 app.include_router(route.router)
 app.include_router(science.router)
 app.include_router(scenario.router)
+app.include_router(environment.router)
 app.include_router(map_router.router)
 
 
@@ -69,6 +73,8 @@ async def health():
             "grid_loaded": ds.is_loaded(),
             "grid_shape": [ds.metadata.rows, ds.metadata.cols],
             "region": "Jezero Crater (18.0–18.9°N, 77.0–78.0°E)",
+            "data_label": ds.data_label,
+            "compliance": ds.compliance,
             "scientific_note": "All science values are MODEL scores, not direct measurements.",
         }
     except RuntimeError:
@@ -86,7 +92,7 @@ async def health():
 @app.get("/")
 async def root():
     return {
-        "project": "PATHWISE",
+        "project": "VICTOR",
         "description": "Multi-Objective Marswalk Arbitration Engine",
         "challenge": "NASA Space Apps 2026 — Interplanetary Survival Guide: Martian Map",
         "docs": "/docs",

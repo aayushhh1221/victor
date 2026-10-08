@@ -1,4 +1,4 @@
-"""PATHWISE — Mars geodesy utilities."""
+"""VICTOR — Mars geodesy utilities."""
 import math
 from typing import Tuple
 from ..models.domain import GridMetadata

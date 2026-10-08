@@ -1,4 +1,4 @@
-"""PATHWISE — Scenario comparison API router."""
+"""VICTOR — Scenario comparison API router."""
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
 from ..models.schemas import ScenarioCompareRequest, ScenarioCompareResponse

@@ -1,4 +1,4 @@
-"""PATHWISE — pytest configuration and shared fixtures."""
+"""VICTOR — pytest configuration and shared fixtures."""
 import sys
 import pytest
 import numpy as np

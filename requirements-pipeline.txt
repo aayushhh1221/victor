@@ -1,0 +1,31 @@
+# VICTOR — data ingestion pipeline dependencies.
+#
+# Needed only to RE-INGEST NASA data and RE-RENDER map tiles, which happens on a
+# developer machine, never on the deployment host:
+#
+#   python scripts/fetch_nasa_data.py     # windowed HTTP reads of NASA rasters
+#   python scripts/generate_tiles.py      # render the map tile pyramid
+#   python scripts/generate_demo_routes.py
+#
+# These are separated from backend/requirements.txt on purpose. rasterio bundles
+# GDAL, which is large and slow to install; the deployment target is Render's
+# free tier (512 MB RAM, slow builds) and does not need any of it, because the
+# derived grids are committed and the tiles are pre-rendered.
+#
+# Install alongside production deps:
+#   pip install -r backend/requirements.txt -r requirements-pipeline.txt
+
+# Windowed/range reads of remote GeoTIFFs via GDAL's /vsicurl/ driver.
+# This is what makes it possible to pull a 1-degree Jezero window out of a 2 GB
+# global MOLA mosaic without downloading the whole file.
+rasterio>=1.3.0
+
+# Resampling CRISM mineral bands onto the computation grid.
+scipy>=1.11.0
+
+# Rendering the PNG tile pyramid.
+Pillow>=10.1.0
+
+# HTTP range requests for the CRISM ENVI cube, which GDAL cannot open remotely
+# without fetching its sibling header.
+requests>=2.31.0

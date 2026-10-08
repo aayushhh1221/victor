@@ -1,4 +1,4 @@
-"""Tests for PATHWISE science opportunity engine."""
+"""Tests for VICTOR science opportunity engine."""
 import pytest
 from backend.services.data_service import DataService
 from backend.services.route_engine import RouteEngine

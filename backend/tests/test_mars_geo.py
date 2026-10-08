@@ -1,4 +1,4 @@
-"""PATHWISE — Mars geodesy unit tests."""
+"""VICTOR — Mars geodesy unit tests."""
 import sys
 import math
 import pytest

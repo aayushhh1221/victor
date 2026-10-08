@@ -1,5 +1,5 @@
 /**
- * PATHWISE — TypeScript interfaces matching all backend models.
+ * VICTOR — TypeScript interfaces matching all backend models.
  * DataMode: LIVE | VERIFIED_SNAPSHOT | DEMONSTRATION
  */
 
@@ -224,6 +224,77 @@ export interface LayerInfo {
   type: string;
   source: string;
   description: string;
+}
+
+// ── GET /api/v1/map/region ───────────────────────────────────────────────────
+// Every field below is computed server-side from the loaded grids, or null.
+// A null means "not available" and MUST render as — in the UI; the frontend
+// never substitutes a plausible-looking constant.
+
+export interface RegionCompliance {
+  real_nasa_data: boolean;
+  multi_mission: boolean;
+  compliant: boolean;
+  nasa_missions: string[];
+  mission_count: number;
+  missions_required?: number;
+  synthetic_sources?: string[];
+  blocking_issues?: string[];
+}
+
+export interface RegionInfo {
+  region_name: string;
+  name: string;
+  lat_min: number;
+  lat_max: number;
+  lon_min: number;
+  lon_max: number;
+  /** Region centre, degrees. */
+  lat: number | null;
+  lon: number | null;
+  /** Mean of the real elevation grid, metres relative to the Mars datum. */
+  elevation_m: number | null;
+  elevation_min_m: number | null;
+  elevation_max_m: number | null;
+  elevation_source: string | null;
+  terrain_type: string | null;
+  terrain_subtype: string | null;
+  region_description: string | null;
+  grid_rows: number;
+  grid_cols: number;
+  cell_size_ns_m: number;
+  cell_size_ew_m: number;
+  cell_shape: string;
+  region_ns_km: number;
+  region_ew_km: number;
+  coordinate_system: string;
+  data_mode: DataMode;
+  compliance: RegionCompliance | null;
+  available_layers: string[];
+  provenance: ProvenanceRecord[];
+}
+
+// ── GET /api/v1/map/layers ───────────────────────────────────────────────────
+
+export type LayerRenderType = 'tile' | 'polyline';
+export type LayerClassification = 'MEASURED' | 'DERIVED' | 'MODELLED';
+
+/** One map layer as the backend reports it. `available` is authoritative. */
+export interface MapLayer {
+  id: string;
+  name: string;
+  type: LayerRenderType | string;
+  source: string;
+  description: string;
+  available: boolean;
+  unavailable_reason: string | null;
+  classification: LayerClassification | null;
+  default_opacity: number;
+}
+
+export interface MapLayersResponse {
+  data_mode: DataMode;
+  layers: MapLayer[];
 }
 
 // UI state types
