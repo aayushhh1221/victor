@@ -1,5 +1,7 @@
 """VICTOR — Route computation API router."""
 from __future__ import annotations
+import json
+import logging
 import uuid
 from typing import Annotated
 from fastapi import APIRouter, HTTPException, Depends
@@ -13,7 +15,9 @@ from ..services.evidence_engine import EvidenceEngine
 from ..services.pareto_engine import compute_pareto_dominance
 from ..services.science_engine import get_nearby_targets
 from ..dependencies import get_data_service, get_route_engine, get_evidence_engine
-from ..services.computation_store import build_store
+from ..services.computation_store import build_store, route_cache_key
+
+logger = logging.getLogger("victor.routes")
 
 router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 
@@ -33,8 +37,40 @@ async def compute_routes(
     data_service=Depends(get_data_service),
     engine: RouteEngine = Depends(get_route_engine),
 ):
-    """Compute 4 competing route strategies with Pareto dominance analysis."""
+    """Compute 4 competing route strategies with Pareto dominance analysis.
+
+    Checks the route cache before running A*. A full 4-strategy computation
+    takes 2.1-2.9 s per strategy on a desktop, and the deployment target gives
+    0.1 shared CPU — so on a cache hit this returns an indexed read instead of
+    a multi-second search. The cache is keyed on the inputs that determine the
+    result, so a hit is always the answer the engine would have produced.
+    """
     strategy_names = [s.value for s in req.strategies]
+
+    cache_key = route_cache_key(
+        req.start.lat, req.start.lon,
+        req.destination.lat, req.destination.lon,
+        req.constraints.model_dump(),
+        strategy_names,
+    )
+    cached = _computation_store.get_cached_route(cache_key)
+    if cached is not None:
+        try:
+            response = RouteComputeResponse.model_validate(cached)
+            # Re-register under the cached computation_id so segment evidence
+            # and scenario lookups resolve against this response too.
+            _computation_store[response.computation_id] = {
+                "response": response,
+                "routes": response.strategies,
+                "request": req,
+            }
+            logger.info(f"Route cache HIT ({cache_key[:12]}…) — skipped A*")
+            return response
+        except Exception as exc:
+            # A stale or malformed cache entry must never break a request;
+            # fall through and recompute.
+            logger.warning(f"Discarding unusable cache entry {cache_key[:12]}…: {exc}")
+
     routes = engine.compute_routes(
         req.start, req.destination, req.constraints, strategy_names
     )
@@ -92,6 +128,12 @@ async def compute_routes(
         "routes": routes,
         "request": req,
     }
+
+    # Cache by inputs so an identical request skips A* next time. Stored after
+    # the computation succeeds, so a failed search is never cached.
+    _computation_store.put_cached_route(
+        cache_key, json.loads(response.model_dump_json())
+    )
 
     return response
 

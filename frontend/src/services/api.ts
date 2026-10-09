@@ -75,8 +75,41 @@ export async function getMapLayers(): Promise<MapLayersResponse> {
   return fetchJson<MapLayersResponse>('/api/v1/map/layers');
 }
 
+/**
+ * Base URL for map tiles.
+ *
+ * In production tiles are served from Supabase Storage (a CDN), not from the
+ * API. Two reasons: Render's filesystem is ephemeral, so tiles served from the
+ * API instance vanish on every redeploy; and streaming ~8,000 PNGs through a
+ * 0.1-shared-CPU instance wastes both CPU and its bandwidth allowance.
+ *
+ * When NEXT_PUBLIC_TILE_BASE_URL is unset — local development, and the offline
+ * demo — this falls back to the API's own tile route, so neither depends on
+ * network storage being reachable.
+ */
+const TILE_BASE = process.env.NEXT_PUBLIC_TILE_BASE_URL?.replace(/\/$/, '')
+  ?? `${API_BASE}/api/v1/map/tiles`;
+
+/** True when tiles come from external object storage rather than the API. */
+export function tilesAreExternallyHosted(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_TILE_BASE_URL);
+}
+
+/** URL of one specific tile. */
 export function getTileUrl(layer: string, z: number, x: number, y: number): string {
-  return `${API_BASE}/api/v1/map/tiles/${layer}/${z}/${x}/${y}.png`;
+  return `${TILE_BASE}/${layer}/${z}/${x}/${y}.png`;
+}
+
+/**
+ * Leaflet URL template for a layer, e.g. `.../terrain/{z}/{x}/{y}.png`.
+ *
+ * Leaflet wants the placeholders literally, so this is built directly rather
+ * than by string-replacing coordinates back out of a concrete getTileUrl()
+ * result — which is what the map component used to do, and which silently
+ * breaks the moment the URL shape changes.
+ */
+export function getTileUrlTemplate(layer: string): string {
+  return `${TILE_BASE}/${layer}/{z}/{x}/{y}.png`;
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────

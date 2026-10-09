@@ -11,7 +11,9 @@ The round-trip test below is the regression test for that: it proves a stored
 computation can be serialised and rebuilt, which is what lets the store survive
 a restart when a database is configured.
 """
+import os
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
@@ -22,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 from backend.services.computation_store import (  # noqa: E402
     ComputationStore,
     MAX_MEMORY_ENTRIES,
+    route_cache_key,
 )
 
 
@@ -161,3 +164,190 @@ class TestRestartSurvival:
         assert restored["response"].computation_id == "round-trip-test"
         for name, route in routes.items():
             assert len(restored["routes"][name].segments) == len(route.segments)
+
+
+class TestRouteCacheKey:
+    """The cache key decides whether a request skips a multi-second A* run.
+
+    Measured: an uncached 4-strategy computation took 13.3 s on a desktop; the
+    cached repeat took 0.24 s. A key that is unstable would silently discard
+    that 56x win; a key that is too loose would return the wrong route.
+    """
+
+    CONSTRAINTS = {"max_slope_deg": 20.0, "max_eva_hours": 6.0, "walking_speed_kmh": 3.0}
+
+    def test_identical_inputs_produce_identical_keys(self):
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        b = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        assert a == b
+
+    def test_strategy_order_does_not_matter(self):
+        """The same set of strategies is the same request."""
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST", "FASTEST"])
+        b = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["FASTEST", "SAFEST"])
+        assert a == b
+
+    def test_different_destination_misses(self):
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        b = route_cache_key(18.44, 77.45, 18.50, 77.26, self.CONSTRAINTS, ["SAFEST"])
+        assert a != b
+
+    def test_different_constraints_miss(self):
+        """Constraints change the result, so they must change the key."""
+        other = dict(self.CONSTRAINTS, max_slope_deg=15.0)
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        b = route_cache_key(18.44, 77.45, 18.50, 77.25, other, ["SAFEST"])
+        assert a != b
+
+    def test_float_noise_below_grid_resolution_still_hits(self):
+        """Rounding is to ~1 m; the grid cell is 177.5 m.
+
+        Without this, trivial floating-point differences in a request would
+        defeat the cache entirely.
+        """
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        b = route_cache_key(18.440000004, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        assert a == b
+
+
+class TestRouteCacheMemory:
+    def test_miss_returns_none(self, store):
+        assert store.get_cached_route("no-such-key") is None
+
+    def test_put_then_get_hits(self, store):
+        store.put_cached_route("k", {"computation_id": "x"})
+        assert store.get_cached_route("k") == {"computation_id": "x"}
+
+    def test_cache_is_lru_bounded(self, store):
+        """The cache must not be an unbounded memory leak on a 512 MB instance."""
+        for i in range(MAX_MEMORY_ENTRIES + 20):
+            store.put_cached_route(f"k{i}", {"computation_id": str(i)})
+        assert store.get_cached_route("k0") is None
+        assert store.get_cached_route(f"k{MAX_MEMORY_ENTRIES + 19}") is not None
+
+
+class TestHealthReporting:
+    """A degraded store must be visible, not silent.
+
+    This is the reporting that was missing when the store could lose its
+    connection and never reconnect — the failure looked identical to working.
+    """
+
+    def test_unconfigured_reports_memory_mode_honestly(self, store):
+        h = store.health()
+        assert h["mode"] == "memory"
+        assert h["configured"] is False
+        assert h["healthy"] is True  # memory-only is a valid, working state
+        assert "not survive" in h["note"]
+
+    def test_configured_but_unreachable_does_not_claim_postgres(self):
+        """The important case: configured != working."""
+        s = ComputationStore(database_url="postgresql://x:x@127.0.0.1:1/none")
+        h = s.health()
+        assert h["configured"] is True
+        assert h["mode"] == "memory", "an unreachable database must not report as postgres"
+        assert h["healthy"] is False
+        assert h["last_error"], "the failure reason must be reported"
+
+    def test_degraded_store_still_serves_reads_and_writes(self):
+        """Persistence failing must never stop route planning."""
+        s = ComputationStore(database_url="postgresql://x:x@127.0.0.1:1/none")
+        s["abc"] = _entry()
+        assert s.get("abc") is not None
+        s.put_cached_route("k", {"computation_id": "x"})
+        assert s.get_cached_route("k") is not None
+
+
+# ── Live database integration ────────────────────────────────────────────────
+#
+# These are the tests that prove persistence actually works. They are skipped
+# until DATABASE_URL is set, so the suite stays green offline while turning into
+# a real integration check the moment a Supabase connection string exists.
+#
+# Run with:
+#   DATABASE_URL="postgresql://...pooler.supabase.com:6543/postgres" pytest backend/tests -v
+
+LIVE_DB_URL = os.environ.get("DATABASE_URL", "")
+requires_db = pytest.mark.skipif(
+    not LIVE_DB_URL,
+    reason="DATABASE_URL not set — skipping live Supabase integration tests",
+)
+
+
+@requires_db
+class TestLiveDatabase:
+    def test_connects_and_reports_postgres(self):
+        s = ComputationStore(database_url=LIVE_DB_URL)
+        h = s.health()
+        assert h["mode"] == "postgres", f"could not connect: {h['last_error']}"
+        assert h["healthy"] is True
+        assert s.persistent is True
+
+    def test_computation_survives_a_new_store_instance(self):
+        """The actual regression test for the spin-down 404, against a real database.
+
+        A second ComputationStore stands in for a restarted process: it shares
+        no memory with the first, so a successful read can only have come from
+        Postgres.
+        """
+        from backend.models.schemas import (
+            RouteComputeResponse, RouteComputeComparison, RouteRangeSummary,
+        )
+        from backend.models.enums import DataMode
+
+        key = f"live-test-{uuid.uuid4()}"
+        response = RouteComputeResponse(
+            computation_id=key,
+            data_mode=DataMode.VERIFIED_SNAPSHOT,
+            strategies={},
+            comparison=RouteComputeComparison(
+                distance_range=RouteRangeSummary(min=0.0, max=1.0),
+                time_range=RouteRangeSummary(min=0.0, max=1.0),
+                science_range=RouteRangeSummary(min=0.0, max=1.0),
+                hazard_range=RouteRangeSummary(min=0.0, max=1.0),
+                trade_off_summary="live test",
+            ),
+            pareto={},
+            provenance=[],
+        )
+
+        writer = ComputationStore(database_url=LIVE_DB_URL)
+        writer[key] = {"response": response, "routes": {}, "request": None}
+
+        reader = ComputationStore(database_url=LIVE_DB_URL)
+        assert not reader._memory, "reader must start with cold memory"
+        restored = reader.get(key)
+        assert restored is not None, "computation did not survive — persistence is broken"
+        assert restored["response"].computation_id == key
+
+    def test_route_cache_survives_a_new_store_instance(self):
+        key = f"live-cache-{uuid.uuid4()}"
+        payload = {"computation_id": "cached", "marker": key}
+
+        ComputationStore(database_url=LIVE_DB_URL).put_cached_route(key, payload)
+
+        reader = ComputationStore(database_url=LIVE_DB_URL)
+        got = reader.get_cached_route(key)
+        assert got is not None, "route cache did not persist"
+        assert got["marker"] == key
+
+    def test_reconnects_after_the_connection_is_dropped(self):
+        """Supabase recycles connections and pauses idle projects.
+
+        Before the reconnect fix, the first drop disabled persistence for the
+        rest of the process lifetime — silently.
+        """
+        s = ComputationStore(database_url=LIVE_DB_URL)
+        assert s.persistent
+
+        # Drop the connection out from under the store.
+        s._db._close_quietly()
+        s._db._last_attempt = 0.0  # bypass the reconnect cooldown for the test
+        assert not s._db.connected
+
+        key = f"live-reconnect-{uuid.uuid4()}"
+        s.put_cached_route(key, {"computation_id": "x", "marker": key})
+
+        got = ComputationStore(database_url=LIVE_DB_URL).get_cached_route(key)
+        assert got is not None, "store did not reconnect after the connection dropped"
+        assert s.health()["mode"] == "postgres"

@@ -76,6 +76,14 @@ services:
       # Next.js, so changing it requires a redeploy of this service.
       - key: NEXT_PUBLIC_API_URL
         sync: false
+      # Public Supabase Storage base for map tiles, e.g.
+      #   https://<project-ref>.supabase.co/storage/v1/object/public/victor-tiles
+      # Upload them first with scripts/upload_tiles.py. If this is left unset
+      # the frontend falls back to requesting tiles from the API — correct
+      # locally, wrong here, because Render's filesystem is ephemeral and the
+      # tiles are lost on every redeploy.
+      - key: NEXT_PUBLIC_TILE_BASE_URL
+        sync: false
     routes:
       # Static export produces real files per route; send anything unmatched to
       # the planner rather than a 404.

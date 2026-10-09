@@ -9,7 +9,7 @@ import {
   pixelSpanToKm,
   LEAFLET_BOUNDS,
 } from '@/utils/marsProjection';
-import { getTileUrl } from '@/services/api';
+import { getTileUrlTemplate } from '@/services/api';
 import { useTheme } from '@/utils/theme';
 import { readToken } from '@/utils/color';
 
@@ -179,7 +179,7 @@ export default function MarsMap({
       if (layer.visible) {
         if (!existing) {
           const tileLayer = L!.tileLayer(
-            `${getTileUrl(layer.id, 0, 0, 0).replace('/0/0/0.png', '')}/{z}/{x}/{y}.png`,
+            getTileUrlTemplate(layer.id),
             {
               tileSize: 256,
               minZoom: 1,

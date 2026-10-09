@@ -63,7 +63,18 @@ app.include_router(map_router.router)
 
 @app.get("/api/v1/health")
 async def health():
-    """Health check. Returns current data_mode."""
+    """Health check.
+
+    Reports the active data mode, challenge compliance, and the computation
+    store's real state. The store block matters operationally: persistence can
+    be configured and still be unreachable, and without reporting it a silent
+    degradation to memory-only looks identical to working — which is how a
+    dropped connection would quietly reintroduce the spin-down 404 bug.
+    """
+    from .routers.route import _computation_store
+
+    store_health = _computation_store.health()
+
     try:
         from .dependencies import get_data_service
         ds = get_data_service()
@@ -75,6 +86,7 @@ async def health():
             "region": "Jezero Crater (18.0–18.9°N, 77.0–78.0°E)",
             "data_label": ds.data_label,
             "compliance": ds.compliance,
+            "store": store_health,
             "scientific_note": "All science values are MODEL scores, not direct measurements.",
         }
     except RuntimeError:
@@ -84,6 +96,7 @@ async def health():
                 "status": "degraded",
                 "data_mode": "UNKNOWN",
                 "grid_loaded": False,
+                "store": store_health,
                 "message": "Data not yet loaded. Run data pipeline first.",
             }
         )
