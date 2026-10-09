@@ -25,28 +25,49 @@ VICTOR simultaneously evaluates four Pareto-optimal route strategies (**SAFEST**
 
 ## 🛰️ NASA Data Architecture
 
-> ### ⚠️ Current data status: `DEMONSTRATION`
+> ### ✅ Current data status: `VERIFIED_SNAPSHOT` — 4 NASA missions
 >
-> **The grids this build computes over are synthetically generated, not real NASA products.**
-> `scripts/data_pipeline.py` falls back to `scripts/generate_synthetic_fallback.py`, and the
-> active mode is reported honestly at runtime by `/api/v1/health` and `/api/v1/map/layers`.
->
-> Real data ingestion is the current priority — see
-> [`docs/PROJECT_STATUS_REPORT.md`](docs/PROJECT_STATUS_REPORT.md) (BLOCKER-1). The table
-> below is the **target** architecture; the Status column states what is actually wired today.
+> VICTOR runs on **real NASA data from four missions**, satisfying the challenge's
+> mandatory real-data and multi-mission requirements. The condition is **enforced in
+> code**, not asserted: `backend/utils/provenance.py` reports `VERIFIED_SNAPSHOT` only
+> when no source is synthetic *and* at least two distinct NASA missions contributed.
+> Verify it yourself at `/api/v1/health`.
 
-VICTOR is designed to fuse the following instrument datasets into a 300×300 non-square computation grid (~53.2 km × ~56.1 km):
+Five NASA products are fused into a 300×300 non-square computation grid (~53.2 km × ~56.1 km):
 
 | Dataset | Mission / Instrument | Role in VICTOR | Status |
 |---|---|---|---|
-| **MOLA** | Mars Global Surveyor (MGS) | Topography, slope, steep scarp avoidance | ⚠️ Synthetic proxy grid |
-| **CRISM** | Mars Reconnaissance Orbiter (MRO) | Mineral identification & science tier scoring | ⚠️ Synthetic tier model |
-| **THEMIS** | 2001 Mars Odyssey | Surface mantling & rock hazard refinement | ⚠️ Synthetic TI proxy |
-| **Perseverance** | Mars 2020 | Reference traverse for orientation | ⚠️ 10 hardcoded waypoints |
-| **HiRISE** | Mars Reconnaissance Orbiter (MRO) | Base visual context (display-only) | ❌ Not ingested — base map is a colormap of the elevation grid |
-| **MCS** | Mars Reconnaissance Orbiter (MRO) | Regional/seasonal dust context | ❌ Not implemented |
+| **MOLA** | Mars Global Surveyor | Topography → slope → traversability | ✅ Real, 463 m/px |
+| **THEMIS** | 2001 Mars Odyssey | Night-IR thermal inertia proxy, hazard | ✅ Real, 100 m/px |
+| **CTX** | Mars Reconnaissance Orbiter | Orbital basemap imagery | ✅ Real, ~5 m/px |
+| **CRISM** | Mars Reconnaissance Orbiter | Olivine + carbonate mineralogy | ✅ Real, 181 m/px (66% coverage) |
+| **Perseverance** | Mars 2020 | Published science target locations | ✅ Real, from literature |
+| **MCS** | Mars Reconnaissance Orbiter | Atmospheric dust / temperature | ❌ No gridded NASA product exists — reported as `null`, never estimated |
 
-**Science values are model-derived scores throughout, never direct measurements** — this is surfaced in the UI and in every API response that carries them.
+### How the data is acquired
+
+Products are read with **windowed HTTP range requests** (GDAL `/vsicurl/`), so only the
+bytes covering the Jezero window transfer:
+
+| Source | Transferred | Of total |
+|---|---|---|
+| MOLA global DEM | ~10.6 MB | 2 GB |
+| CRISM mineral cube | 1.8 MB | 576 MB |
+
+### Honest classification
+
+Every grid carries one of four labels, and the API reports them per layer:
+
+| Class | Meaning |
+|---|---|
+| `MEASURED` | Read from a published NASA product |
+| `DERIVED` | Computed from measured inputs by a documented transform |
+| `MODELLED` | Assigned by a VICTOR model, not a measurement of that quantity |
+| `SYNTHETIC` | Generated with no NASA input — **none present** |
+
+**Science values are model-derived scores, never direct measurements** — surfaced in the UI
+and in every API response that carries them. CRISM swath gaps (~34% of the window) are kept
+as no-data and render transparent: unmeasured, not mineral-free.
 
 ---
 
@@ -62,6 +83,53 @@ VICTOR is designed to fuse the following instrument datasets into a 300×300 non
    Computes exact cost reductions in closed form (*"Without the hazard penalty, this segment's traversal cost decreases by 28%"*) without slow re-runs.
 5. **Rigorous Mars Geodesy:**  
    Operates in IAU2000 planetocentric coordinates ($R_{\text{Mars}} = 3,389,500\text{ m}$) with an explicit affine projection into Leaflet pixel space.
+
+---
+
+## 🧠 Intelligence & Reporting
+
+### Unsupervised terrain classification (AI/ML)
+
+`scripts/classify_terrain.py` runs k-means over the real ingested feature stack — MOLA
+slope and roughness, THEMIS thermal inertia, CRISM olivine and carbonate indices — with the
+cluster count chosen by **silhouette score** (k=4 selected from candidates 3–7).
+
+It is **fitted offline** and only the resulting label grid is committed, so scikit-learn
+never ships to the 512 MB production instance. The result is deterministic and costs nothing
+at runtime.
+
+A useful sanity check: the classifier independently assigns **34.5% of the window to
+olivine-bearing bedrock**, which corresponds to Jezero's known olivine-carbonate unit — and
+the `SCIENCE_RICHEST` route crosses 60% of that terrain versus the 34.5% window average.
+
+**It is advisory.** It does not feed `traversability.npy` and does not touch any routing
+cost. The A*/Pareto engine remains the sole decision authority, which is what keeps the
+optimiser fully explainable.
+
+### Mission briefing
+
+`GET /api/v1/report/briefing/{computation_id}?strategy=...` produces a narrative brief from
+a structured fact sheet assembled from the route, its metrics, the Pareto result and the
+provenance record. It may state **only** values present in that fact sheet.
+
+A deterministic template generator produces a complete brief with **no API key and no
+network**, so the demo cannot fail on a quota or connectivity error. An LLM path layers on
+top when `GEMINI_API_KEY` is set. The response reports which generator was used.
+
+### Mission report export
+
+`GET /api/v1/report/{computation_id}?strategy=...&download=true` streams a self-contained
+HTML report — briefing, four-strategy comparison, route profile, science targets, and a
+**data-provenance appendix** listing every product ID, checksum and classification. That
+appendix is the point: it makes the report portable evidence that the entry used real NASA
+data from four missions. Print to PDF from the browser.
+
+### Data confidence layer
+
+Uncertainty made explicit rather than implicit. A 0–1 completeness index driven by real
+signals: CRISM swath gaps (~34% of the window unmeasured) and source resolution being
+coarser than the grid cell. It is **not** a probability or an error bar, and the provenance
+record says so.
 
 ---
 
@@ -109,6 +177,48 @@ npm run dev
 ```
 
 Open `http://localhost:3000` (redirects to `/planner`).
+
+---
+
+## 🚀 Deployment
+
+Fully configured and ready to deploy — **no code changes needed**, only accounts and
+environment variables. See [`.env.example`](.env.example) for every variable with notes.
+
+### Architecture
+
+| Component | Target | Why |
+|---|---|---|
+| `victor-api` | Render Web Service (free) | FastAPI backend |
+| `victor-web` | Render **Static Site** (free) | Always-on and CDN-backed, so the UI loads instantly even while the API is cold |
+| Database | Supabase Postgres (free) | Persists route computations and the route cache |
+| Map tiles | Supabase Storage (free) | Render's filesystem is ephemeral; tiles would vanish on redeploy |
+
+### Steps
+
+```bash
+# 1. Apply the database schema (use the DIRECT connection, port 5432)
+psql "$DIRECT_DATABASE_URL" -f supabase/migrations/0001_init.sql
+
+# 2. Upload the map tiles to Supabase Storage (8,185 PNGs, ~111 MB)
+python scripts/upload_tiles.py --create-bucket
+
+# 3. Deploy both services from render.yaml, then set:
+#    victor-api  ->  DATABASE_URL (use the POOLER on port 6543), FRONTEND_URL
+#    victor-web  ->  NEXT_PUBLIC_API_URL, NEXT_PUBLIC_TILE_BASE_URL
+```
+
+### Free-tier constraints already handled
+
+- **Ephemeral filesystem** — nothing is generated at runtime; grids are committed and tiles pre-rendered
+- **512 MB RAM** — production dependencies are 7 packages; GDAL, scipy, Pillow and scikit-learn are pipeline-only
+- **15-minute spin-down** — route computations persist to Postgres, so `computation_id` lookups survive it
+- **0.1 shared CPU** — a route cache turns a repeat computation from ~13 s into ~0.2 s, and the demo route is precomputed
+- **750 instance-hours/month** ≈ 744 h in a 31-day month, so enable any uptime pinger only shortly before the event
+- **Supabase 7-day idle pause** — verify the project is awake before demoing
+
+Everything runs **fully offline** with no environment variables set, which is the intended
+demo path. `/api/v1/health` reports whether persistence is actually live.
 
 ---
 

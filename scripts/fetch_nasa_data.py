@@ -819,6 +819,52 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
     ))
 
 
+
+    # 8. Per-cell confidence — DERIVED. Makes data uncertainty visible instead
+    # of implicit.
+    #
+    # Two real, disclosable sources of uncertainty exist, and neither was
+    # previously surfaced anywhere:
+    #   * CRISM swath gaps. ~34% of the window has no mineral measurement at
+    #     all; those cells fall back to a proximity model.
+    #   * Source resolution. The elevation source is coarser than the 177.5 m x
+    #     187.1 m grid cell, so sub-source relief is unresolved everywhere.
+    #
+    # Confidence is deliberately NOT a probability — it is a 0-1 completeness
+    # index, and the provenance record says so.
+    base = 1.0 if dem.native_resolution_m <= CELL_NS_M else 0.75
+    confidence = np.full((ROWS, COLS), base, dtype=np.float32)
+    if olivine is not None:
+        measured = np.isfinite(olivine)
+        # Cells with no mineral measurement carry materially less information.
+        confidence = np.where(measured, confidence, confidence * 0.6)
+    grids["confidence"] = confidence.astype(np.float32)
+    registry.register(DataSource(
+        product_id="VICTOR_confidence_index",
+        title="Per-cell data confidence index",
+        mission="Derived (all contributing missions)",
+        nasa_missions=[dem.nasa_mission, THEMIS_NIGHT_IR.nasa_mission],
+        instrument="Derived from source coverage and resolution",
+        url="(derived - see contributing sources)",
+        classification=Classification.DERIVED,
+        distributor="Derived by VICTOR",
+        native_resolution_m=CELL_EW_M,
+        license="Derived from public domain inputs",
+        checksum_sha256=sha256_of_array(grids["confidence"]),
+        grids_produced=["confidence"],
+        processing_chain=[
+            f"base = {base} (elevation source {dem.native_resolution_m:.0f} m/px "
+            f"vs {CELL_NS_M:.1f} m grid cell)",
+            "x0.6 where CRISM provides no mineral measurement",
+        ],
+        caveats=[
+            "A 0-1 data COMPLETENESS index, not a probability and not an error "
+            "bar. Low confidence means fewer independent measurements support "
+            "that cell, not that the terrain is different.",
+            "Routing does not use this grid; it is presented for interpretation.",
+        ],
+    ))
+
     return grids
 
 

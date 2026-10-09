@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MapPin, Mountain, Layers, Thermometer, Wind } from 'lucide-react';
-import type { RegionInfo } from '@/types';
+import type { EnvironmentResponse, RegionInfo } from '@/types';
 
 /**
  * Region summary strip.
@@ -19,6 +19,16 @@ interface InfoBarProps {
   loading: boolean;
   /** Human-readable reason the region could not be loaded, if it failed. */
   error: string | null;
+  /**
+   * Conditions from GET /api/v1/environment/current, when loaded.
+   *
+   * Only the temperature and dust cards read it. Both quantities come back null
+   * today — the MCS products behind them are not ingested — so the cards stay
+   * at —, but the endpoint's `notes` string now explains why in the tooltip
+   * instead of a hardcoded sentence. If a real value ever arrives the card
+   * shows it, credited to the source the endpoint names.
+   */
+  environment?: EnvironmentResponse | null;
 }
 
 const NOT_INGESTED = 'Data source not yet ingested';
@@ -77,7 +87,7 @@ function formatCoords(lat: number, lon: number): string {
   return `${Math.abs(lat).toFixed(3)}°${ns}, ${Math.abs(lon).toFixed(3)}°${ew}`;
 }
 
-export default function InfoBar({ region, loading, error }: InfoBarProps) {
+export default function InfoBar({ region, loading, error, environment }: InfoBarProps) {
   if (loading) {
     return (
       <div
@@ -110,6 +120,24 @@ export default function InfoBar({ region, loading, error }: InfoBarProps) {
         : '';
     return `Mean, grid-wide · ${source}${range}`;
   })();
+
+  // ── Environmental cards ───────────────────────────────────────────────────
+  // The endpoint's own `notes` string is the authoritative explanation for a
+  // null, so prefer it over a sentence written here.
+  const envNotes = environment?.notes?.trim() || null;
+
+  const dayTemp = environment?.surface_temperature_day_c ?? null;
+  const hasTemp = dayTemp != null;
+  const tempTooltip = hasTemp
+    ? `Daytime surface temperature · ${environment?.temperature_source ?? 'source not reported'}`
+    : envNotes
+    ?? 'Surface temperature: MCS/THEMIS atmospheric products are not yet ingested';
+
+  const dustTau = environment?.dust_opacity_tau ?? null;
+  const hasDust = dustTau != null;
+  const dustTooltip = hasDust
+    ? `Column dust opacity · ${environment?.dust_opacity_source ?? 'source not reported'}`
+    : envNotes ?? 'Dust opacity: MCS atmospheric products are not yet ingested';
 
   return (
     <div
@@ -155,18 +183,26 @@ export default function InfoBar({ region, loading, error }: InfoBarProps) {
         <InfoCard
           icon={<Thermometer size={16} />}
           label="Current Conditions (Est.)"
-          value="—"
-          sub={NOT_INGESTED}
-          unavailable
-          tooltip="Surface temperature: MCS/THEMIS atmospheric products are not yet ingested"
+          value={hasTemp ? `${dayTemp} °C` : '—'}
+          sub={
+            hasTemp
+              ? `Daytime · ${environment?.temperature_source ?? 'source not reported'}`
+              : NOT_INGESTED
+          }
+          unavailable={!hasTemp}
+          tooltip={tempTooltip}
         />
         <InfoCard
           icon={<Wind size={16} />}
           label="Atmospheric Dust"
-          value="—"
-          sub={NOT_INGESTED}
-          unavailable
-          tooltip="Dust opacity: MCS atmospheric products are not yet ingested"
+          value={hasDust ? `τ ${dustTau}` : '—'}
+          sub={
+            hasDust
+              ? environment?.dust_opacity_source ?? 'source not reported'
+              : NOT_INGESTED
+          }
+          unavailable={!hasDust}
+          tooltip={dustTooltip}
         />
       </div>
     </div>

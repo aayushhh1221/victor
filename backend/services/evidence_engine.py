@@ -128,6 +128,21 @@ class EvidenceEngine:
             },
         ]
 
+        # Terrain archetype from the unsupervised classifier. Advisory context
+        # only — it explains what kind of ground this leg crosses and had no
+        # influence on the route that was chosen.
+        terrain = self.ds.terrain_class_at(segment.end.lat, segment.end.lon)
+        if terrain and terrain.get("name"):
+            data_sources.append({
+                "layer": "terrain_class",
+                "source": "k-means over MOLA + THEMIS + CRISM features",
+                "data_type": "ML_DERIVED",
+                "label": (
+                    "UNSUPERVISED CLASSIFICATION — advisory only, does not "
+                    "affect routing."
+                ),
+            })
+
         return SegmentEvidenceResponse(
             computation_id=computation_id,
             segment_id=segment.segment_id,
@@ -135,6 +150,8 @@ class EvidenceEngine:
             slope_deg=round(segment.slope_deg, 2),
             surface_material=surface_mat,
             mineral_class=mineral_class.value,
+            terrain_class_id=terrain.get("id") if terrain else None,
+            terrain_class_name=terrain.get("name") if terrain else None,
             science_value=round(segment.science_value, 4),
             science_tier=tier,
             hazard_score=round(segment.hazard_score, 3),

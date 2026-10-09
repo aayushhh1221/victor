@@ -172,6 +172,10 @@ class SegmentEvidenceResponse(BaseModel):
     slope_deg: float
     surface_material: str
     mineral_class: str
+    # Unsupervised terrain archetype. Advisory context only — it describes the
+    # ground this leg crosses and had no influence on the route chosen.
+    terrain_class_id: Optional[int] = None
+    terrain_class_name: Optional[str] = None
     science_value: float
     science_tier: int
     hazard_score: float

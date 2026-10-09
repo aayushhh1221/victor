@@ -5,9 +5,10 @@
  * require dynamic data from the planning engine.
  */
 
-import React from 'react';
-import type { DataMode, HealthResponse } from '@/types';
-import { BookOpen, Database, Cpu, Thermometer, FileText, Map, Layers } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import type { DataMode, EnvironmentResponse, HealthResponse } from '@/types';
+import { getEnvironment } from '@/services/api';
+import { BookOpen, Database, Cpu, Thermometer, Map, Layers, Info, AlertTriangle } from 'lucide-react';
 import { withAlpha } from '@/utils/color';
 
 // ── Shared ───────────────────────────────────────────────────────────────
@@ -308,40 +309,210 @@ export function DataSourcesView() {
 
 // ── Environmental ────────────────────────────────────────────────────────
 
+const EM_DASH = '—';
+
+/**
+ * One environmental quantity.
+ *
+ * `value` null means the backend reported null — the data product behind the
+ * field is not ingested. That renders as — with the backend's own `notes` as
+ * the tooltip. There is deliberately no fallback constant: a plausible-looking
+ * temperature here would be indistinguishable from a measurement.
+ */
+function EnvField({
+  label,
+  value,
+  unit,
+  scale,
+  source,
+  tooltip,
+}: {
+  label: string;
+  value: number | null;
+  unit?: string;
+  /** What the number means, e.g. 'unitless 0–1 proxy'. Shown when present. */
+  scale?: string;
+  source: string | null;
+  tooltip: string;
+}) {
+  const unavailable = value == null;
+  return (
+    <div
+      className="flex items-start justify-between gap-4 py-2.5"
+      style={{ borderBottom: '1px solid var(--border-subtle)' }}
+      title={tooltip}
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+          {label}
+        </p>
+        <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+          {unavailable ? 'Not available — no ingested NASA product for this quantity' : (source ?? 'Source not reported')}
+        </p>
+        {!unavailable && scale && (
+          <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+            {scale}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {unavailable && <Info size={11} style={{ color: 'var(--text-disabled)' }} />}
+        <span
+          className="metric-value"
+          style={{ color: unavailable ? 'var(--text-muted)' : 'var(--text-primary)' }}
+        >
+          {unavailable ? EM_DASH : `${value}${unit ? ` ${unit}` : ''}`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function EnvironmentalView() {
+  const [env, setEnv] = useState<EnvironmentResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getEnvironment()
+      .then((res) => {
+        if (cancelled) return;
+        setEnv(res);
+        setError(null);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setEnv(null);
+        setError(e instanceof Error ? e.message : 'Environment request failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const notes = env?.notes?.trim() || '';
+  const missingTooltip = notes || 'The backend reported this field as not available.';
+
   return (
     <ViewShell icon={<Thermometer size={18} />} eyebrow="Atmospheric & Surface Conditions" title="Environmental Data">
-      <div
-        className="flex items-center gap-3 p-4 rounded-xl mb-6"
-        style={{
-          background: 'var(--mode-demo-bg)',
-          border: '1px solid var(--mode-demo-border)',
-          color: 'var(--mode-demo)',
-        }}
-      >
-        <Thermometer size={16} className="flex-shrink-0" />
-        <div>
-          <p className="text-sm font-semibold">Environmental data not yet ingested</p>
-          <p className="text-xs mt-0.5">
-            MCS atmospheric profiles and daily temperature curves are on the backend roadmap.
-            See <code>frontend/BACKEND_REQUESTS.md</code> for the endpoint spec.
-          </p>
+      {error && (
+        <div
+          className="flex items-start gap-3 p-4 rounded-xl mb-6"
+          style={{
+            background: 'var(--color-danger-bg)',
+            border: '1px solid var(--color-danger-border)',
+            color: 'var(--color-danger)',
+          }}
+        >
+          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold">Environmental data unavailable</p>
+            <p className="text-xs mt-0.5 leading-relaxed">
+              The backend could not be reached, so no conditions are shown. Nothing is
+              estimated in its place.
+            </p>
+            <p className="text-[10px] mt-1 font-mono opacity-80">{error}</p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <InfoBox title="What will appear here">
-        <ul className="list-disc list-inside space-y-1 text-sm">
-          <li>Surface temperature range (THEMIS-derived, daytime / nighttime)</li>
-          <li>Dust opacity index (MCS seasonal climatology)</li>
-          <li>Wind speed estimate (GCM model output)</li>
-          <li>UV exposure index</li>
-          <li>Atmospheric pressure</li>
-        </ul>
-        <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          All values will be labelled with their data source and uncertainty.
-          No fabricated environmental data will ever appear in this panel.
-        </p>
-      </InfoBox>
+      {!env && !error && (
+        <div className="space-y-2 mb-6">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="skeleton h-12 rounded-lg" />
+          ))}
+        </div>
+      )}
+
+      {env && (
+        <>
+          <div
+            className="rounded-xl p-5 mb-4"
+            style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {env.region}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Every value below is read from an ingested NASA product or reported as
+                  unavailable.
+                </p>
+              </div>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded font-semibold flex-shrink-0 ${
+                  env.data_mode === 'DEMONSTRATION'
+                    ? 'badge-demonstration'
+                    : env.data_mode === 'LIVE'
+                    ? 'badge-live'
+                    : 'badge-verified'
+                }`}
+              >
+                {env.data_mode}
+              </span>
+            </div>
+
+            <div className="mt-3">
+              <EnvField
+                label="Thermal inertia index (mean)"
+                value={env.thermal_index_mean}
+                scale="Unitless 0–1 proxy for thermal inertia — high means heat-retaining rock, low means loose dust or sand. This is NOT a temperature."
+                source={env.thermal_index_source}
+                tooltip={
+                  env.thermal_index_mean != null
+                    ? 'Grid mean of the THEMIS night-IR thermal proxy. A relative 0–1 index, not convertible to a temperature without the THEMIS emissivity and atmospheric correction chain.'
+                    : missingTooltip
+                }
+              />
+              <EnvField
+                label="Surface temperature (day)"
+                value={env.surface_temperature_day_c}
+                unit="°C"
+                source={env.temperature_source}
+                tooltip={missingTooltip}
+              />
+              <EnvField
+                label="Surface temperature (night)"
+                value={env.surface_temperature_night_c}
+                unit="°C"
+                source={env.temperature_source}
+                tooltip={missingTooltip}
+              />
+              <EnvField
+                label="Dust opacity (τ)"
+                value={env.dust_opacity_tau}
+                source={env.dust_opacity_source}
+                tooltip={missingTooltip}
+              />
+              <EnvField
+                label="Atmospheric pressure"
+                value={env.atmospheric_pressure_pa}
+                unit="Pa"
+                source={env.pressure_source}
+                tooltip={missingTooltip}
+              />
+            </div>
+          </div>
+
+          {notes && (
+            <div
+              className="flex items-start gap-3 p-4 rounded-xl mb-4"
+              style={{
+                background: 'var(--mode-demo-bg)',
+                border: '1px solid var(--mode-demo-border)',
+                color: 'var(--mode-demo)',
+              }}
+            >
+              <Info size={16} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold">Why most fields read {EM_DASH}</p>
+                <p className="text-xs mt-1 leading-relaxed">{notes}</p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <InfoBox title="Known Jezero Crater Climate Context (qualitative)">
         <p>
@@ -356,47 +527,9 @@ export function EnvironmentalView() {
 }
 
 // ── Mission Report ────────────────────────────────────────────────────────
-
-interface MissionReportViewProps {
-  hasRoute: boolean;
-  routeSummary?: string;
-}
-
-export function MissionReportView({ hasRoute, routeSummary }: MissionReportViewProps) {
-  return (
-    <ViewShell icon={<FileText size={18} />} eyebrow="Post-Mission" title="Mission Report">
-      {!hasRoute ? (
-        <div
-          className="p-5 rounded-xl"
-          style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)' }}
-        >
-          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-            Report generated after route computation
-          </p>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Plan a Marswalk to generate a mission report. The report will include selected route
-            metrics, science opportunities accessed, provenance records for all data used, and
-            risk factors encountered along the route.
-          </p>
-        </div>
-      ) : (
-        <div>
-          <InfoBox title="Trade-off Summary">
-            <p>{routeSummary ?? 'Route computed. Summary available after strategy selection.'}</p>
-          </InfoBox>
-          <InfoBox title="Data Provenance">
-            <p>
-              All route costs derive from MOLA elevation (slope and traversability bands), the
-              THEMIS night-IR thermal inertia proxy, and the science value MODEL over published
-              Jezero targets. Data is pre-downloaded from PDS — no live satellite queries are
-              made during planning.
-            </p>
-          </InfoBox>
-        </div>
-      )}
-    </ViewShell>
-  );
-}
+// Moved to its own module: the view is now driven by the briefing and report
+// endpoints, so it no longer belongs among the static views.
+// See components/panels/MissionReportView.tsx.
 
 // ── Mars Explorer ─────────────────────────────────────────────────────────
 

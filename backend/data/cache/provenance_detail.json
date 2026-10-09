@@ -10,7 +10,7 @@
   },
   "data_mode": "VERIFIED_SNAPSHOT",
   "label": "VERIFIED SNAPSHOT \u2014 real NASA open data from 4 missions",
-  "generated_at": "2026-10-08T11:46:43.609009+00:00",
+  "generated_at": "2026-10-09T11:25:04.179226+00:00",
   "compliance": {
     "real_nasa_data": true,
     "multi_mission": true,
@@ -35,7 +35,8 @@
     "hazard": "DERIVED",
     "olivine_index": "MEASURED",
     "carbonate_index": "MEASURED",
-    "science_value": "DERIVED"
+    "science_value": "DERIVED",
+    "confidence": "DERIVED"
   },
   "sources": [
     {
@@ -55,7 +56,7 @@
       "native_crs": "PROJCS[\"Equirectangular Mars\",GEOGCS[\"GCS_Mars\",DATUM[\"D_Mars\",SPHEROID[\"Mars_localRadius\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",0],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
       "observation_window": null,
       "license": "CC0 (public domain)",
-      "retrieved_at": "2026-10-08T11:46:29.401586+00:00",
+      "retrieved_at": "2026-10-09T11:24:49.714724+00:00",
       "checksum_sha256": "60296d6038466c1e2f5b74b37290bc593592fec4ca2920cf272c3edc9bfc1f00",
       "published_checksum_md5": null,
       "bytes_read": null,
@@ -87,7 +88,7 @@
       "native_crs": null,
       "observation_window": null,
       "license": "CC0 (public domain)",
-      "retrieved_at": "2026-10-08T11:46:29.405495+00:00",
+      "retrieved_at": "2026-10-09T11:24:49.720006+00:00",
       "checksum_sha256": "c36df236f0e3eb9a1b7ab02abf452035e43bd78bb80fd163990ffaf90f9f76b6",
       "published_checksum_md5": null,
       "bytes_read": null,
@@ -120,7 +121,7 @@
       "native_crs": "ESRI:103885",
       "observation_window": null,
       "license": "Public domain (NASA/USGS)",
-      "retrieved_at": "2026-10-08T11:46:29.485449+00:00",
+      "retrieved_at": "2026-10-09T11:24:49.789204+00:00",
       "checksum_sha256": "b43ed2b6727a0dfaa7ded5684cc8d00782654619e74fa4ff70155262c9d32155",
       "published_checksum_md5": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/THEMIS_controlled_mosaics/AA_mosaics/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018.tif.md5",
       "bytes_read": null,
@@ -153,7 +154,7 @@
       "native_crs": "ESRI:104971",
       "observation_window": null,
       "license": "Public domain (NASA/USGS)",
-      "retrieved_at": "2026-10-08T11:46:29.510441+00:00",
+      "retrieved_at": "2026-10-09T11:24:49.839995+00:00",
       "checksum_sha256": "daafbd116f82de037425f4fa2fc6e54ec79bbeb7a5a0d10b554a6a6e21c578bd",
       "published_checksum_md5": null,
       "bytes_read": null,
@@ -186,7 +187,7 @@
       "native_crs": null,
       "observation_window": null,
       "license": "Derived from public domain inputs",
-      "retrieved_at": "2026-10-08T11:46:29.512838+00:00",
+      "retrieved_at": "2026-10-09T11:24:49.841594+00:00",
       "checksum_sha256": "223f1791e582ed157083d697fd222cbd98d1179e2eb76d2a3f25de86fcf5b67a",
       "published_checksum_md5": null,
       "bytes_read": null,
@@ -217,7 +218,7 @@
       "native_crs": "Equirectangular, per-tile sphere; read via published 5x5 deg bounds",
       "observation_window": null,
       "license": "Public domain (NASA)",
-      "retrieved_at": "2026-10-08T11:46:43.497147+00:00",
+      "retrieved_at": "2026-10-09T11:25:04.112605+00:00",
       "checksum_sha256": "c55309ceaf6f09ae8ded5609a395bdb9c251768df3772ef602626756ba399fc4",
       "published_checksum_md5": null,
       "bytes_read": null,
@@ -253,7 +254,7 @@
       "native_crs": null,
       "observation_window": null,
       "license": "Derived from public domain inputs",
-      "retrieved_at": "2026-10-08T11:46:43.550416+00:00",
+      "retrieved_at": "2026-10-09T11:25:04.156809+00:00",
       "checksum_sha256": "45bc930daa600a6b0de7e33e786f6a67a28c69239c4a66135fa006204b076e0b",
       "published_checksum_md5": null,
       "bytes_read": null,
@@ -269,6 +270,40 @@
         "A priority SCORE, not a measurement. The mineral indices underneath it are real CRISM measurements; collapsing them into one priority number is a VICTOR modelling choice.",
         "66% of cells are CRISM-measured (DERIVED); the rest fall back to the target proximity model (MODELLED). Per-cell provenance therefore varies across the grid.",
         "Target sources: Ehlmann et al. 2008; Farley et al. 2022 (Science 377); Goudge et al. 2015; Goudge et al. 2017; Goudge et al. 2017; Farley et al. 2020; Mangold et al. 2021"
+      ]
+    },
+    {
+      "product_id": "VICTOR_confidence_index",
+      "title": "Per-cell data confidence index",
+      "mission": "Derived (all contributing missions)",
+      "instrument": "Derived from source coverage and resolution",
+      "url": "(derived - see contributing sources)",
+      "classification": "DERIVED",
+      "nasa_missions": [
+        "Mars Global Surveyor",
+        "2001 Mars Odyssey"
+      ],
+      "distributor": "Derived by VICTOR",
+      "archive_node": null,
+      "native_resolution": null,
+      "native_resolution_m": 187.1,
+      "native_crs": null,
+      "observation_window": null,
+      "license": "Derived from public domain inputs",
+      "retrieved_at": "2026-10-09T11:25:04.157767+00:00",
+      "checksum_sha256": "5c8b64fafb321b4d4f0abf855ab059e5c33ebb6d83f8785a198d5aed9c9421be",
+      "published_checksum_md5": null,
+      "bytes_read": null,
+      "grids_produced": [
+        "confidence"
+      ],
+      "processing_chain": [
+        "base = 0.75 (elevation source 463 m/px vs 177.5 m grid cell)",
+        "x0.6 where CRISM provides no mineral measurement"
+      ],
+      "caveats": [
+        "A 0-1 data COMPLETENESS index, not a probability and not an error bar. Low confidence means fewer independent measurements support that cell, not that the terrain is different.",
+        "Routing does not use this grid; it is presented for interpretation."
       ]
     }
   ]

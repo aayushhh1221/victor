@@ -180,11 +180,22 @@ def _build_layers(data_service) -> list[LayerInfo]:
             "id": "composition",
             "name": "Surface Composition (CRISM)",
             "type": "tile",
-            "source": "CRISM / Mars Reconnaissance Orbiter",
-            "description": "Per-cell mineral identification from CRISM spectra.",
-            "classification": None,
-            "available": False,
-            "reason": NOT_INGESTED,
+            "source": src("CRISM / Mars Reconnaissance Orbiter"),
+            "description": (
+                "Mineral signature from real CRISM spectra — olivine "
+                "(OLINDEX3) and carbonate (CINDEX2), the two families that "
+                "define Jezero's science case. Swath gaps cover ~34% of the "
+                "window and render transparent: unmeasured, not mineral-free."
+            ),
+            "classification": "MEASURED",
+            "available": (
+                data_service.has_grid("olivine_index")
+                and data_service.has_grid("carbonate_index")
+                and _tiles_exist("composition")
+            ),
+            "reason": (
+                NOT_INGESTED if not data_service.has_grid("olivine_index") else NO_TILES
+            ),
             "default_opacity": 0.6,
         },
         {
@@ -197,6 +208,38 @@ def _build_layers(data_service) -> list[LayerInfo]:
             "available": False,
             "reason": NOT_INGESTED,
             "default_opacity": 0.5,
+        },
+        {
+            "id": "terrain_class",
+            "name": "Terrain Archetypes (ML)",
+            "type": "tile",
+            "source": "k-means over MOLA + THEMIS + CRISM",
+            "description": (
+                "Unsupervised classification of the surface into terrain "
+                "archetypes from real MOLA slope/roughness, THEMIS thermal "
+                "inertia and CRISM mineral indices. Advisory only — it does "
+                "not affect routing, traversability or route ranking."
+            ),
+            "classification": "DERIVED",
+            "available": data_service.has_grid("terrain_class") and _tiles_exist("terrain_class"),
+            "reason": NOT_INGESTED if not data_service.has_grid("terrain_class") else NO_TILES,
+            "default_opacity": 0.6,
+        },
+        {
+            "id": "confidence",
+            "name": "Data Confidence",
+            "type": "tile",
+            "source": "Derived from source coverage and resolution",
+            "description": (
+                "Where the data behind this map is thinner. Driven by CRISM "
+                "swath gaps (~34% of the window has no mineral measurement) "
+                "and by source resolution being coarser than the grid cell. "
+                "A 0-1 completeness index, not a probability or an error bar."
+            ),
+            "classification": "DERIVED",
+            "available": data_service.has_grid("confidence") and _tiles_exist("confidence"),
+            "reason": NOT_INGESTED if not data_service.has_grid("confidence") else NO_TILES,
+            "default_opacity": 0.55,
         },
         {
             "id": "perseverance_traverse",
@@ -228,6 +271,24 @@ def _build_layers(data_service) -> list[LayerInfo]:
         )
         for s in specs
     ]
+
+
+@router.get("/terrain-classes")
+async def get_terrain_classes(data_service=Depends(get_data_service)):
+    """Terrain archetype metadata from the unsupervised classifier.
+
+    Gives the UI the class names, the features they were derived from, the
+    cluster-count justification and the caveats — so the legend can explain
+    what each colour means rather than showing unlabelled blobs.
+    """
+    classes = data_service.terrain_classes
+    if not classes:
+        return {
+            "available": False,
+            "reason": "Terrain classification has not been run.",
+            "classes": [],
+        }
+    return {"available": True, **classes}
 
 
 @router.get("/layers", response_model=LayersResponse)

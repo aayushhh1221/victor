@@ -78,6 +78,20 @@ def main() -> int:
     for name, route in routes.items():
         route.pareto_status = pareto[name]
 
+    # Attach nearby science targets, exactly as /routes/compute does. Without
+    # this the demo bundle ships with an empty science_targets_nearby, and the
+    # briefing and report then correctly but unhelpfully report "no catalogued
+    # science targets" — which undersells a core challenge requirement.
+    from backend.services.science_engine import get_nearby_targets
+
+    all_targets = ds.get_science_targets()
+    for route in routes.values():
+        route.science_targets_nearby = get_nearby_targets(
+            route, all_targets, walking_speed_kmh=constraints.walking_speed_kmh
+        )
+    found = {n: len(r.science_targets_nearby or []) for n, r in routes.items()}
+    logger.info(f"Science targets in range per strategy: {found}")
+
     response = RouteComputeResponse(
         computation_id="demo-jezero-001",
         data_mode=ds.data_mode,

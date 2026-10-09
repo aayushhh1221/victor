@@ -297,6 +297,86 @@ export interface MapLayersResponse {
   layers: MapLayer[];
 }
 
+// ── GET /api/v1/map/terrain-classes ──────────────────────────────────────────
+// Metadata for the `terrain_class` map layer: an UNSUPERVISED k-means
+// classification of the surface. It is advisory — it does not feed the routing
+// cost function — and the UI is required to say so.
+
+/** One k-means cluster. `centroid` keys are the feature ids in `features`. */
+export interface TerrainClass {
+  id: number;
+  name: string;
+  /** Cells assigned to this cluster. Absent if the backend did not report it. */
+  cell_count?: number | null;
+  /** Share of classified cells, 0–1. */
+  fraction: number | null;
+  centroid: Record<string, number> | null;
+}
+
+export interface TerrainClassesResponse {
+  /** Authoritative. When false, only `reason` and an empty `classes` are set. */
+  available: boolean;
+  /** Why classification output is missing, when `available` is false. */
+  reason?: string | null;
+  /** e.g. 'k-means (unsupervised)'. */
+  method?: string | null;
+  /** Chosen cluster count. */
+  k?: number | null;
+  /** How `k` was chosen, e.g. 'highest silhouette score'. */
+  k_selection?: string | null;
+  /** Silhouette score per candidate k, keyed by k as a string. */
+  silhouette_scores?: Record<string, number> | null;
+  /** Feature ids the clustering ran on. */
+  features?: string[] | null;
+  /** Share of cells with no CRISM coverage, 0–1. */
+  crism_gap_fraction?: number | null;
+  classes: TerrainClass[];
+  caveats?: string[] | null;
+}
+
+/** CSS token holding the tile colour for a cluster id. Palette wraps at 7. */
+export const TERRAIN_CLASS_PALETTE_SIZE = 7;
+
+export function terrainClassColor(id: number): string {
+  const slot = ((id % TERRAIN_CLASS_PALETTE_SIZE) + TERRAIN_CLASS_PALETTE_SIZE)
+    % TERRAIN_CLASS_PALETTE_SIZE;
+  return `var(--terrain-class-${slot})`;
+}
+
+// ── GET /api/v1/report/briefing/{computation_id} ─────────────────────────────
+
+/** Which generator produced a briefing. Both are first-class, neither is an error. */
+export type BriefingGenerator = 'llm' | 'template';
+
+export interface BriefingResponse {
+  computation_id: string;
+  strategy: string;
+  /** Markdown using only `##`, `###`, `- ` bullets and `**bold**`. */
+  briefing: string;
+  generator: BriefingGenerator | string;
+  cached: boolean;
+}
+
+// ── GET /api/v1/environment/current ──────────────────────────────────────────
+// Most fields are deliberately null: the gridded NASA products they would come
+// from are not ingested. A null MUST render as — with `notes` explaining why.
+
+export interface EnvironmentResponse {
+  region: string;
+  data_mode: DataMode;
+  surface_temperature_day_c: number | null;
+  surface_temperature_night_c: number | null;
+  temperature_source: string | null;
+  /** Unitless 0–1 THEMIS night-IR thermal inertia proxy. NOT a temperature. */
+  thermal_index_mean: number | null;
+  thermal_index_source: string | null;
+  dust_opacity_tau: number | null;
+  dust_opacity_source: string | null;
+  atmospheric_pressure_pa: number | null;
+  pressure_source: string | null;
+  notes: string;
+}
+
 // UI state types
 export interface MapPin {
   type: 'start' | 'destination';

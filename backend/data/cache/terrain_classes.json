@@ -1,0 +1,79 @@
+{
+  "method": "k-means (unsupervised)",
+  "k": 4,
+  "k_selection": "highest silhouette score",
+  "silhouette_scores": {
+    "3": 0.2842823831441465,
+    "4": 0.29006097448441187,
+    "5": 0.2584089424111102,
+    "6": 0.26253639542748103,
+    "7": 0.2559610986255752
+  },
+  "features": [
+    "mola_slope_deg",
+    "mola_roughness_m",
+    "themis_thermal_proxy",
+    "crism_olivine_olindex3",
+    "crism_carbonate_cindex2"
+  ],
+  "crism_gap_fraction": 0.34,
+  "classes": [
+    {
+      "id": 0,
+      "name": "Bedrock plain (olivine-bearing)",
+      "cell_count": 31067,
+      "fraction": 0.3452,
+      "centroid": {
+        "mola_slope_deg": 2.2659,
+        "mola_roughness_m": 5.8974,
+        "themis_thermal_proxy": 0.7277,
+        "crism_olivine_olindex3": 0.203,
+        "crism_carbonate_cindex2": 0.0401
+      }
+    },
+    {
+      "id": 1,
+      "name": "Mixed-regolith plain",
+      "cell_count": 7259,
+      "fraction": 0.0807,
+      "centroid": {
+        "mola_slope_deg": 2.4253,
+        "mola_roughness_m": 6.3422,
+        "themis_thermal_proxy": 0.4636,
+        "crism_olivine_olindex3": 0.2012,
+        "crism_carbonate_cindex2": -0.0636
+      }
+    },
+    {
+      "id": 2,
+      "name": "Blocky sand-mantled slope",
+      "cell_count": 8092,
+      "fraction": 0.0899,
+      "centroid": {
+        "mola_slope_deg": 10.5254,
+        "mola_roughness_m": 27.7054,
+        "themis_thermal_proxy": 0.2719,
+        "crism_olivine_olindex3": 0.1691,
+        "crism_carbonate_cindex2": 0.0306
+      }
+    },
+    {
+      "id": 3,
+      "name": "Sand-mantled plain",
+      "cell_count": 43582,
+      "fraction": 0.4842,
+      "centroid": {
+        "mola_slope_deg": 1.4862,
+        "mola_roughness_m": 3.8949,
+        "themis_thermal_proxy": 0.3323,
+        "crism_olivine_olindex3": 0.1755,
+        "crism_carbonate_cindex2": 0.0303
+      }
+    }
+  ],
+  "caveats": [
+    "Advisory only. Does not affect routing cost, traversability or route ranking \u2014 the A*/Pareto engine is unchanged.",
+    "Cluster names are interpretations of centroid physics, not published geological unit assignments.",
+    "CRISM gaps cover 34% of cells; those cells are clustered on MOLA and THEMIS features alone, with mineral features filled at the window median."
+  ]
+}

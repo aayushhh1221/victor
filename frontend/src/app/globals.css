@@ -212,6 +212,18 @@
   --route-science-richest: #F97316;
   --route-balanced:        #A855F7;
 
+  /* Terrain archetype classes (k-means cluster ids).
+     These MUST match the tile renderer's per-class palette exactly, in id
+     order, or the legend would mislabel the map. Theme-invariant, like the
+     route colours, because they are a data encoding rather than chrome. */
+  --terrain-class-0: rgb(56, 142, 180);   /* blue   */
+  --terrain-class-1: rgb(240, 170, 60);   /* amber  */
+  --terrain-class-2: rgb(200, 85, 95);    /* red    */
+  --terrain-class-3: rgb(120, 180, 105);  /* green  */
+  --terrain-class-4: rgb(155, 120, 195);  /* purple */
+  --terrain-class-5: rgb(230, 130, 190);  /* pink   */
+  --terrain-class-6: rgb(110, 190, 190);  /* teal   */
+
   /* Science tiers */
   --tier-1: #22C55E;
   --tier-2: #86EFAC;

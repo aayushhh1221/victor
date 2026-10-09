@@ -65,7 +65,10 @@ class DataService:
         # missing one is a normal state, not an error — the layer that depends
         # on it reports itself unavailable rather than the app failing to boot.
         self._optional: dict[str, np.ndarray] = {}
-        for name in ["thermal_proxy", "imagery", "dust"]:
+        for name in [
+            "thermal_proxy", "imagery", "dust",
+            "olivine_index", "carbonate_index", "terrain_class", "confidence",
+        ]:
             path = self.cache_dir / f"{name}.npy"
             if path.exists():
                 arr = np.load(path)
@@ -75,6 +78,15 @@ class DataService:
                     logger.warning(f"{name}.npy shape={arr.shape}; ignoring")
         if self._optional:
             logger.info(f"Optional grids loaded: {sorted(self._optional)}")
+
+        # Terrain archetype names, produced by scripts/classify_terrain.py.
+        self._terrain_classes: dict = {}
+        tc_path = self.cache_dir / "terrain_classes.json"
+        if tc_path.exists():
+            try:
+                self._terrain_classes = json.loads(tc_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Could not read terrain_classes.json: {e}")
 
     def _load_metadata(self) -> None:
         path = self.cache_dir / "grid_metadata.json"
@@ -222,6 +234,27 @@ class DataService:
 
     def optional_grid(self, name: str) -> Optional[np.ndarray]:
         return getattr(self, "_optional", {}).get(name)
+
+    @property
+    def terrain_classes(self) -> dict:
+        """Terrain archetype metadata from the unsupervised classifier."""
+        return getattr(self, "_terrain_classes", {})
+
+    def terrain_class_at(self, lat: float, lon: float) -> Optional[dict]:
+        """Terrain archetype for a location, or None if unclassified.
+
+        Advisory only — this never affects routing. It exists so segment
+        evidence can say what kind of ground a leg crosses.
+        """
+        grid = self.optional_grid("terrain_class")
+        if grid is None:
+            return None
+        row, col = self.latlon_to_grid(lat, lon)
+        class_id = int(grid[row, col])
+        for entry in self.terrain_classes.get("classes", []):
+            if entry.get("id") == class_id:
+                return {"id": class_id, "name": entry.get("name")}
+        return {"id": class_id, "name": None}
 
     def get_traversability_grid(self) -> np.ndarray:
         return self._traversability

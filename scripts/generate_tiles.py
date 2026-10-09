@@ -176,6 +176,38 @@ THERMAL_COLORS = [
 ]
 
 
+# Terrain archetype classes (categorical, ids 0..n). Stops are placed at exact
+# class ids so np.interp returns the flat class colour rather than a blend —
+# a blended value between two class ids would depict terrain that is not there.
+# Surface composition from CRISM mineral indices. The first stop is fully
+# transparent so CRISM swath gaps (stored as -9999, mapped to NaN) render as
+# nothing at all — an unmeasured cell must not be painted as "no mineral".
+COMPOSITION_COLORS = [
+    (0.0,  (0, 0, 0, 0)),         # no measurement — transparent
+    (0.01, (40, 60, 140, 70)),    # weak signature
+    (0.35, (60, 150, 160, 120)),
+    (0.65, (210, 170, 60, 150)),
+    (1.0,  (220, 90, 60, 180)),   # strong mineral signature
+]
+
+CONFIDENCE_COLORS = [
+    (0.0,  (120, 20, 20, 170)),   # little supporting data — flag it loudly
+    (0.5,  (200, 140, 40, 120)),
+    (0.75, (120, 160, 120, 60)),
+    (1.0,  (60, 160, 90, 20)),    # fully supported — nearly transparent
+]
+
+TERRAIN_CLASS_COLORS = [
+    (0.0, (56, 142, 180, 170)),   # class 0 — blue
+    (1.0, (240, 170, 60, 170)),   # class 1 — amber
+    (2.0, (200, 85, 95, 170)),    # class 2 — red
+    (3.0, (120, 180, 105, 170)),  # class 3 — green
+    (4.0, (155, 120, 195, 170)),  # class 4 — purple
+    (5.0, (230, 130, 190, 170)),  # class 5 — pink
+    (6.0, (110, 190, 190, 170)),  # class 6 — teal
+]
+
+
 def main():
     if not (CACHE_DIR / "elevation.npy").exists():
         logger.error("Cache not found. Run data pipeline first.")
@@ -215,6 +247,52 @@ def main():
         generate_layer_tiles("dust_activity", np.load(dust_path), HAZARD_COLORS, "RGBA")
     else:
         logger.info("dust.npy absent — skipping dust tiles")
+
+    # Terrain archetypes from the unsupervised classifier. Categorical, so each
+    # class gets a flat distinct colour rather than an interpolated ramp —
+    # interpolating between class ids would invent terrain that does not exist.
+    terrain_class_path = CACHE_DIR / "terrain_class.npy"
+    if terrain_class_path.exists():
+        labels = np.load(terrain_class_path)
+        generate_layer_tiles(
+            "terrain_class", labels.astype(np.float64), TERRAIN_CLASS_COLORS, "RGBA"
+        )
+    else:
+        logger.info("terrain_class.npy absent — skipping terrain class tiles")
+
+    # Surface composition from real CRISM spectra. Combines the olivine and
+    # carbonate indices — the two mineral families that define Jezero's science
+    # case — each percentile-stretched then combined by maximum, so a cell is
+    # highlighted if EITHER is strongly present.
+    ol_path = CACHE_DIR / "olivine_index.npy"
+    cb_path = CACHE_DIR / "carbonate_index.npy"
+    if ol_path.exists() and cb_path.exists():
+        def _stretch(a):
+            a = np.where(a <= -9999.0, np.nan, a)
+            finite = a[np.isfinite(a)]
+            if finite.size == 0:
+                return a
+            lo, hi = np.percentile(finite, [5, 95])
+            if hi - lo < 1e-9:
+                return np.zeros_like(a)
+            return np.clip((a - lo) / (hi - lo), 0.0, 1.0)
+
+        ol = _stretch(np.load(ol_path).astype(np.float64))
+        cb = _stretch(np.load(cb_path).astype(np.float64))
+        composition = np.fmax(ol, cb)
+        # Both unmeasured -> stays NaN -> renders transparent via the first stop.
+        composition = np.where(~np.isfinite(ol) & ~np.isfinite(cb), np.nan, composition)
+        generate_layer_tiles("composition", composition, COMPOSITION_COLORS, "RGBA")
+    else:
+        logger.info("CRISM index grids absent — skipping composition tiles")
+
+    confidence_path = CACHE_DIR / "confidence.npy"
+    if confidence_path.exists():
+        generate_layer_tiles(
+            "confidence", np.load(confidence_path), CONFIDENCE_COLORS, "RGBA"
+        )
+    else:
+        logger.info("confidence.npy absent — skipping confidence tiles")
 
     create_placeholder()
     logger.info("✓ Tile generation complete")

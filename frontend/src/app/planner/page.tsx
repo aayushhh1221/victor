@@ -4,25 +4,28 @@ import dynamic from 'next/dynamic';
 import type {
   Coordinate, RouteStrategy, ActiveLayer, ScienceTarget,
   SegmentEvidenceResponse, RouteComputeResponse, DataMode, MissionConstraints, HealthResponse,
-  RegionInfo,
+  RegionInfo, EnvironmentResponse,
 } from '@/types';
 import { STRATEGY_META } from '@/types';
 import {
   computeRoutes, getDemoRoutes, getHealth, getScienceTargets, getSegmentEvidence, getRegion,
+  getEnvironment,
 } from '@/services/api';
 import Header from '@/components/common/Header';
 import Sidebar from '@/components/sidebar/Sidebar';
 import InfoBar from '@/components/common/InfoBar';
 import LayerControl from '@/components/map/LayerControl';
+import TerrainClassLegend from '@/components/map/TerrainClassLegend';
 import RouteComparisonTable from '@/components/panels/RouteComparisonTable';
 import EvidencePopup from '@/components/panels/EvidencePopup';
 import CompareScenariosView from '@/components/panels/CompareScenariosView';
 import RouteAnalysisView from '@/components/panels/RouteAnalysisView';
 import ScienceOppsView from '@/components/panels/ScienceOppsView';
 import MissionOverviewView from '@/components/panels/MissionOverviewView';
+import MissionReportView from '@/components/panels/MissionReportView';
 import {
   MethodologyView, AboutView, DataSourcesView, EnvironmentalView,
-  MissionReportView, MarsExplorerView, DataLayersTabView, SystemStatusView,
+  MarsExplorerView, DataLayersTabView, SystemStatusView,
 } from '@/components/panels/StaticViews';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { MapPin, Play, AlertTriangle, Navigation, ShieldCheck } from 'lucide-react';
@@ -164,6 +167,9 @@ export default function PlannerPage() {
   const [region, setRegion] = useState<RegionInfo | null>(null);
   const [regionLoading, setRegionLoading] = useState(true);
   const [regionError, setRegionError] = useState<string | null>(null);
+  // Conditions for the info-bar tooltips. Most of its fields are null by
+  // design, so a failed request simply leaves the cards at — as before.
+  const [environment, setEnvironment] = useState<EnvironmentResponse | null>(null);
   const [activeTab, setActiveTab] = useState('planner');
   const [sidebarSection, setSidebarSection] = useState('plan');
   const [showSciencePanel, setShowSciencePanel] = useState(false);
@@ -221,6 +227,12 @@ export default function PlannerPage() {
         setScienceLabel(r.label ?? '');
       })
       .catch(() => {});
+
+    // Environmental conditions. Used only for tooltips and the Environmental
+    // view, so a failure degrades to the same — the backend already reports.
+    getEnvironment()
+      .then(setEnvironment)
+      .catch(() => setEnvironment(null));
 
     getDemoRoutes()
       .then((demo) => {
@@ -290,6 +302,9 @@ export default function PlannerPage() {
       setIsComputing(false);
     }
   };
+
+  /** Whether the advisory terrain-archetype layer is currently on the map. */
+  const terrainClassVisible = layers.some((l) => l.id === 'terrain_class' && l.visible);
 
   // Build profile chart data from active strategy segments
   const chartData = activeStrategy && routeResult
@@ -417,8 +432,8 @@ export default function PlannerPage() {
         <div className="flex flex-1 overflow-hidden">
           <Sidebar activeSection={sidebarSection} onSectionChange={handleSidebarChange} />
           <MissionReportView
-            hasRoute={!!routeResult}
-            routeSummary={routeResult?.comparison.trade_off_summary}
+            routeResult={routeResult}
+            activeStrategy={activeStrategy}
           />
         </div>
       </div>
@@ -517,7 +532,12 @@ export default function PlannerPage() {
       style={{ background: 'var(--surface)' }}
     >
       <Header dataMode={dataMode} activeTab={activeTab} onTabChange={handleTabChange} />
-      <InfoBar region={region} loading={regionLoading} error={regionError} />
+      <InfoBar
+        region={region}
+        loading={regionLoading}
+        error={regionError}
+        environment={environment}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar activeSection={sidebarSection} onSectionChange={handleSidebarChange} />
@@ -758,6 +778,13 @@ export default function PlannerPage() {
                       Values computed from DEMONSTRATION data
                     </p>
                   )}
+                  <button
+                    className="text-xs mt-2"
+                    style={{ color: 'var(--accent)' }}
+                    onClick={() => handleSidebarChange('report')}
+                  >
+                    Mission briefing &amp; report export →
+                  </button>
                 </div>
               </div>
             </div>
@@ -956,6 +983,10 @@ export default function PlannerPage() {
               </p>
             </div>
             <LayerControl layers={layers} onChange={setLayers} />
+            {/* Key for the terrain-archetype layer. The layer renders as flat
+                coloured regions, so it is unreadable without one — shown only
+                while that layer is switched on. */}
+            {terrainClassVisible && <TerrainClassLegend />}
           </div>
 
           {/* Data mode note — mission list comes from the backend compliance report */}

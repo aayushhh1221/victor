@@ -71,6 +71,11 @@ def main() -> None:
         help="Generate data grids only. Tile generation takes several minutes.",
     )
     parser.add_argument(
+        "--skip-ml",
+        action="store_true",
+        help="Skip unsupervised terrain classification (needs scikit-learn).",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Regenerate even if output already exists.",
@@ -82,7 +87,35 @@ def main() -> None:
     if grids_present() and not args.force:
         logger.info("Data grids already present — skipping data pipeline.")
     else:
-        run_step("data_pipeline.py", "Generating data grids")
+        # Prefer real NASA data. fetch_nasa_data.py reads the published products
+        # over HTTP range requests; data_pipeline.py is the synthetic fallback,
+        # used only if that cannot reach the archives.
+        logger.info("Acquiring real NASA data (windowed HTTP reads) …")
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "fetch_nasa_data.py")]
+        )
+        if result.returncode != 0:
+            logger.warning(
+                "Real NASA data acquisition failed — falling back to synthetic "
+                "DEMONSTRATION grids. The app will label itself accordingly."
+            )
+            run_step("data_pipeline.py", "Generating synthetic fallback grids")
+
+    # Unsupervised terrain classification. Fitted here rather than in the server
+    # so scikit-learn stays out of the production dependency set.
+    if (CACHE_DIR / "terrain_class.npy").exists() and not args.force:
+        logger.info("Terrain classification already present — skipping.")
+    elif args.skip_ml:
+        logger.info("--skip-ml given — not running terrain classification.")
+    else:
+        try:
+            run_step("classify_terrain.py", "Classifying terrain (unsupervised)")
+        except SystemExit:
+            logger.warning(
+                "Terrain classification failed (is scikit-learn installed? see "
+                "requirements-pipeline.txt). The ML layer will report itself "
+                "unavailable; everything else works."
+            )
 
     if args.skip_tiles:
         logger.info("--skip-tiles given — not generating map tiles.")
@@ -90,6 +123,14 @@ def main() -> None:
         logger.info("Tile pyramid already present — skipping tile generation.")
     else:
         run_step("generate_tiles.py", "Generating map tiles (this takes a few minutes)")
+
+    # Precomputed demo routes. These make the demo path cost zero computation,
+    # which matters on a 0.1-shared-CPU deployment instance.
+    demo_file = ROOT / "backend" / "data" / "demo" / "precomputed_routes.json"
+    if demo_file.exists() and not args.force:
+        logger.info("Demo routes already present — skipping.")
+    else:
+        run_step("generate_demo_routes.py", "Precomputing demo routes")
 
     logger.info("Bootstrap complete. Start the backend from the repository root with:")
     logger.info("    uvicorn backend.main:app --reload --port 8000")

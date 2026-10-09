@@ -14,6 +14,9 @@ import type {
   ScienceTarget,
   RegionInfo,
   MapLayersResponse,
+  TerrainClassesResponse,
+  BriefingResponse,
+  EnvironmentResponse,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -73,6 +76,18 @@ export async function getRegion(): Promise<RegionInfo> {
  */
 export async function getMapLayers(): Promise<MapLayersResponse> {
   return fetchJson<MapLayersResponse>('/api/v1/map/layers');
+}
+
+/**
+ * Typed form of GET /api/v1/map/terrain-classes.
+ *
+ * Metadata for the unsupervised terrain-archetype layer: cluster names, the
+ * features used, how k was chosen and the caveats. Returns
+ * `{ available: false, reason, classes: [] }` when classification has not
+ * been run — the caller must handle that rather than assume classes exist.
+ */
+export async function getTerrainClasses(): Promise<TerrainClassesResponse> {
+  return fetchJson<TerrainClassesResponse>('/api/v1/map/terrain-classes');
 }
 
 /**
@@ -169,6 +184,51 @@ export async function compareScenarios(
       modifications,
     }),
   });
+}
+
+// ── Environment ─────────────────────────────────────────────────────────────
+
+/**
+ * Current environmental conditions for the study region.
+ *
+ * Most fields come back null on purpose — the MCS atmospheric products they
+ * would derive from are not available as a gridded NASA product. Callers must
+ * render a null as — and surface `notes`, never substitute a number.
+ */
+export async function getEnvironment(): Promise<EnvironmentResponse> {
+  return fetchJson<EnvironmentResponse>('/api/v1/environment/current');
+}
+
+// ── Mission briefing & report ───────────────────────────────────────────────
+
+/** Narrative Markdown briefing for one strategy of a stored computation. */
+export async function getBriefing(
+  computationId: string,
+  strategy: string,
+): Promise<BriefingResponse> {
+  return fetchJson<BriefingResponse>(
+    `/api/v1/report/briefing/${encodeURIComponent(computationId)}`
+      + `?strategy=${encodeURIComponent(strategy)}`,
+  );
+}
+
+/**
+ * URL of the self-contained HTML mission report.
+ *
+ * This endpoint returns a whole HTML document, not JSON, so the client opens
+ * the URL directly rather than fetching and re-rendering it. With
+ * `download` the backend adds a Content-Disposition attachment header.
+ */
+export function getReportUrl(
+  computationId: string,
+  strategy: string,
+  download = false,
+): string {
+  const params = new URLSearchParams({
+    strategy,
+    download: download ? 'true' : 'false',
+  });
+  return `${API_BASE}/api/v1/report/${encodeURIComponent(computationId)}?${params}`;
 }
 
 export { ApiError };

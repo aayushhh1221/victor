@@ -38597,7 +38597,40 @@
         "impassable_cells_avoided": 0,
         "confidence": "MODERATE"
       },
-      "science_targets_nearby": [],
+      "science_targets_nearby": [
+        {
+          "id": "carb-02",
+          "name": "Carbonate Deposit Beta",
+          "type": "CARBONATE",
+          "mineral_class": "CARBONATE",
+          "location": {
+            "lat": 18.49,
+            "lon": 77.28
+          },
+          "science_value": 0.88,
+          "tier": 1,
+          "description": "Secondary carbonate outcrop within delta fan.",
+          "source": "Goudge et al. 2015",
+          "distance_from_route_m": 468.5,
+          "detour_cost_minutes": 18.7
+        },
+        {
+          "id": "hsilica-01",
+          "name": "Hydrated Silica Patch",
+          "type": "HYDRATED_SILICA",
+          "mineral_class": "HYDRATED_SILICA",
+          "location": {
+            "lat": 18.43,
+            "lon": 77.15
+          },
+          "science_value": 0.85,
+          "tier": 1,
+          "description": "Hydrated silica at delta inlet. High biosignature preservation. Tier 1 priority.",
+          "source": "Goudge et al. 2017",
+          "distance_from_route_m": 429.8,
+          "detour_cost_minutes": 17.2
+        }
+      ],
       "pareto_status": "NON_DOMINATED"
     },
     "BALANCED": {
@@ -52843,7 +52876,24 @@
         "impassable_cells_avoided": 0,
         "confidence": "MODERATE"
       },
-      "science_targets_nearby": [],
+      "science_targets_nearby": [
+        {
+          "id": "carb-01",
+          "name": "Carbonate Deposit Alpha",
+          "type": "CARBONATE",
+          "mineral_class": "CARBONATE",
+          "location": {
+            "lat": 18.52,
+            "lon": 77.2
+          },
+          "science_value": 0.95,
+          "tier": 1,
+          "description": "Exposed carbonate unit in delta lobe. Highest biosignature preservation potential in Jezero.",
+          "source": "Goudge et al. 2015",
+          "distance_from_route_m": 429.6,
+          "detour_cost_minutes": 17.2
+        }
+      ],
       "pareto_status": "NON_DOMINATED"
     }
   },

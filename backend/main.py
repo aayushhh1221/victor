@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from .config import settings
 from .services.data_service import DataService
 from .dependencies import init_services
-from .routers import route, science, scenario, environment, map as map_router
+from .routers import route, science, scenario, environment, report, map as map_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger("victor")
@@ -58,6 +58,7 @@ app.include_router(route.router)
 app.include_router(science.router)
 app.include_router(scenario.router)
 app.include_router(environment.router)
+app.include_router(report.router)
 app.include_router(map_router.router)
 
 
