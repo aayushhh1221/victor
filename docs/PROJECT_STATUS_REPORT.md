@@ -342,7 +342,7 @@ Target: **Render free tier** (hosting) + **Supabase free tier** (database/storag
 |---|---|
 | 4-strategy route computation (desktop) | 2.1–2.9 s per strategy |
 | Full test suite | 59 passed in ~20 s |
-| Tile pyramid | 8,185 PNGs, 127 MB (fits Supabase Storage's 1 GB) |
+| Tile pyramid | 12,277 PNGs across 9 layers, 211 MB (fits Supabase Storage's 1 GB) |
 | Committed data grids | 9 arrays, ~3 MB |
 
 **Open risk:** route computation has not been measured on the actual 0.1 CPU instance. A
@@ -362,7 +362,7 @@ whoever owns deployment.
 | Step | Command / action |
 |---|---|
 | 1. Apply the schema | `psql "$DIRECT_DATABASE_URL" -f supabase/migrations/0001_init.sql` (direct connection, port 5432) |
-| 2. Upload map tiles | `python scripts/upload_tiles.py --create-bucket` (8,185 PNGs, ~111 MB) |
+| 2. Upload map tiles | `python scripts/upload_tiles.py --create-bucket` (12,277 PNGs, ~211 MB) |
 | 3. Deploy both services | From `render.yaml` |
 | 4. Set API variables | `DATABASE_URL` (**pooler**, port 6543), `FRONTEND_URL` |
 | 5. Set web variables | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_TILE_BASE_URL` |

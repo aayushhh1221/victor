@@ -183,7 +183,14 @@ Open `http://localhost:3000` (redirects to `/planner`).
 ## 🚀 Deployment
 
 Fully configured and ready to deploy — **no code changes needed**, only accounts and
-environment variables. See [`.env.example`](.env.example) for every variable with notes.
+environment variables.
+
+> ### 📘 Deploying this? Read [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+>
+> A complete step-by-step walkthrough of Render and Supabase: project creation,
+> the database migration, tile upload, every environment variable, verification
+> steps, free-tier pitfalls, troubleshooting and a pre-demo checklist.
+> The summary below is orientation only.
 
 ### Architecture
 
@@ -200,7 +207,7 @@ environment variables. See [`.env.example`](.env.example) for every variable wit
 # 1. Apply the database schema (use the DIRECT connection, port 5432)
 psql "$DIRECT_DATABASE_URL" -f supabase/migrations/0001_init.sql
 
-# 2. Upload the map tiles to Supabase Storage (8,185 PNGs, ~111 MB)
+# 2. Upload the map tiles to Supabase Storage (12,277 PNGs, ~211 MB)
 python scripts/upload_tiles.py --create-bucket
 
 # 3. Deploy both services from render.yaml, then set:
