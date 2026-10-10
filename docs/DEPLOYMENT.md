@@ -91,12 +91,33 @@ No payment card is required for either free tier.
 
 ### One thing to understand before starting
 
-**Map tiles are not in the repository.** They are generated artefacts
-(12,277 PNG files, ~211 MB) and are gitignored. You generate them locally in
-Part A, then upload them to Supabase Storage in Part B.
+> ## ⚠️ Map tiles are NOT in the repository — you must generate them
+>
+> Tiles are generated artefacts (**12,277 PNG files, ~211 MB**) and are
+> gitignored, so a fresh clone does not have them.
+>
+> **The symptom if you skip this:** the backend starts fine, `/api/v1/health`
+> reports everything healthy, every API endpoint returns 200 — and **the map is
+> blank**, with tile requests returning **404**:
+>
+> ```
+> GET /api/v1/map/tiles/imagery/3/4/4.png   ->  404
+> ```
+>
+> Nothing is broken. The tiles have simply never been built. Fix it with one
+> command from the repository root:
+>
+> ```bash
+> python scripts/bootstrap.py
+> ```
+>
+> This is **Step A.2** below, and it is the single step most likely to be
+> missed, because everything else looks healthy without it. You need the tiles
+> locally before you can upload them to Supabase Storage in Part B.
 
-The repository itself is only ~8.5 MB / 124 files. The data grids *are*
-committed, because the backend cannot boot without them.
+The repository itself is only ~8.5 MB / 125 files. The data grids **are**
+committed, because the backend cannot boot without them — tiles are the only
+large artefact you have to build.
 
 ---
 
@@ -652,7 +673,26 @@ response.
 - **`psycopg is not installed`** — `backend/requirements.txt` includes
   `psycopg[binary]`; check the build log actually installed it
 
-### Map is blank, or tiles 404
+### Tile routes return 404 and the map is blank — on a LOCAL fresh clone
+
+**Most likely cause: you have not run `python scripts/bootstrap.py` yet.**
+
+Tiles are gitignored generated artefacts, so a fresh clone has none. Everything
+else will look perfectly healthy — the backend boots, `/api/v1/health` is `ok`,
+all API endpoints return 200 — and only the tile routes 404.
+
+```bash
+# Confirm the diagnosis: this should report 12277
+find backend/data/tiles -name '*.png' | wc -l
+
+# Fix
+python scripts/bootstrap.py
+```
+
+If the count is 0 or low, tile generation has not run or did not finish. It
+takes 5–15 minutes. `python scripts/generate_tiles.py` runs just that step.
+
+### Map is blank, or tiles 404 — on the DEPLOYED site
 
 1. Confirm tiles uploaded: `python scripts/upload_tiles.py --dry-run` should
    report `pending: 0`
@@ -759,7 +799,9 @@ Full annotated version: [`.env.example`](../.env.example).
 ## Quick reference
 
 ```bash
-# Local artefact generation (do this first)
+# Local artefact generation — DO THIS FIRST.
+# Without it the map is blank and tile routes 404, even though everything
+# else reports healthy. Generates 12,277 tiles (~211 MB), 5-15 minutes.
 python scripts/bootstrap.py
 
 # Apply the schema (direct connection, port 5432)

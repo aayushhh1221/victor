@@ -145,12 +145,21 @@ record says so.
 pip install -r backend/requirements.txt
 ```
 
-The backend cannot serve routes without the computation grids, and the test suite
-silently skips 24 of its 47 tests when they are missing. Generate them with:
+> ### ⚠️ Run this before anything else
+>
+> Map tiles are gitignored generated artefacts, so a fresh clone has none. Skip
+> this and the backend will start, `/api/v1/health` will report healthy, every
+> API endpoint will return 200 — and **the map will be blank with tile routes
+> returning 404**. Nothing is broken; the tiles just have not been built.
 
 ```bash
 python scripts/bootstrap.py
 ```
+
+This generates the real NASA data grids, the terrain classification, 12,277 map
+tiles (~211 MB) and the precomputed demo routes. It is idempotent, so re-running
+skips whatever is already done. First run takes 10–25 minutes; the tiles are
+most of it.
 
 This generates the data grids and the map tile pyramid. Both steps are idempotent and
 skip themselves if their output already exists. Pass `--skip-tiles` to generate grids
