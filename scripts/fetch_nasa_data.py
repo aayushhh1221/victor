@@ -415,6 +415,11 @@ def read_window(raster: RemoteRaster, out_shape=(ROWS, COLS)) -> tuple[np.ndarra
     return data, diagnostics
 
 
+def grid_hashes(grids: dict[str, np.ndarray], names: list[str]) -> dict[str, str]:
+    """Checksum each named grid so every one is independently verifiable."""
+    return {n: sha256_of_array(grids[n]) for n in names if n in grids}
+
+
 def source_from(
     raster: RemoteRaster,
     classification: Classification,
@@ -423,6 +428,7 @@ def source_from(
     checksum: str,
     processing: list[str],
     caveats: list[str],
+    grid_checksums: dict[str, str] | None = None,
 ) -> DataSource:
     """Build a provenance record, carrying NASA mission and archive lineage."""
     return DataSource(
@@ -441,6 +447,7 @@ def source_from(
         license=raster.license,
         published_checksum_md5=raster.published_md5_url,
         checksum_sha256=checksum,
+        grid_checksums=grid_checksums or {},
         grids_produced=grids,
         processing_chain=processing,
         caveats=caveats,
@@ -614,6 +621,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         dem, Classification.MEASURED, diag,
         grids=["elevation"],
         checksum=sha256_of_array(elevation),
+        grid_checksums=grid_hashes(grids, ["elevation"]),
         processing=[
             f"Windowed /vsicurl read of {diag['window_px']} px from "
             f"{diag['native_size']} global mosaic",
@@ -645,6 +653,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         native_resolution_m=MOLA_DEM.native_resolution_m,
         license=MOLA_DEM.license,
         checksum_sha256=sha256_of_array(traversability),
+        grid_checksums=grid_hashes(grids, ["slope", "traversability"]),
         grids_produced=["slope", "traversability"],
         processing_chain=[
             "slope = degrees(arctan(|grad(elevation)|)) with 177.5 m NS / 187.1 m EW spacing",
@@ -665,6 +674,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         THEMIS_NIGHT_IR, Classification.DERIVED, diag_th,
         grids=["thermal_proxy"],
         checksum=sha256_of_array(thermal_proxy),
+        grid_checksums=grid_hashes(grids, ["thermal_proxy"]),
         processing=[
             f"Windowed /vsicurl read of {diag_th['window_px']} px",
             f"Bilinear resample to {ROWS}x{COLS}",
@@ -687,6 +697,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         CTX_JEZERO, Classification.MEASURED, diag_ctx,
         grids=["imagery"],
         checksum=sha256_of_array(imagery),
+        grid_checksums=grid_hashes(grids, ["imagery"]),
         processing=[
             f"Windowed /vsicurl read of {diag_ctx['window_px']} px from "
             f"{diag_ctx['native_size']} regional mosaic",
@@ -714,6 +725,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         native_resolution_m=CELL_EW_M,
         license="Derived from public domain inputs",
         checksum_sha256=sha256_of_array(hazard),
+        grid_checksums=grid_hashes(grids, ["hazard"]),
         grids_produced=["hazard"],
         processing_chain=[
             "hazard = 10 * (0.7 * clip(slope/25, 0, 1) + 0.3 * (1 - thermal_proxy))",
@@ -739,6 +751,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
             CRISM_MRDR, Classification.MEASURED, diag_ol,
             grids=["olivine_index", "carbonate_index"],
             checksum=sha256_of_array(grids["olivine_index"]),
+            grid_checksums=grid_hashes(grids, ["olivine_index", "carbonate_index"]),
             processing=[
                 f"HTTP range read of {diag_ol['bytes_read']/1e6:.1f} MB from the "
                 f"576 MB ENVI BSQ cube (band {CRISM_BAND_OLINDEX3} OLINDEX3, "
@@ -809,6 +822,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         native_resolution_m=CELL_EW_M,
         license="Derived from public domain inputs",
         checksum_sha256=sha256_of_array(grids["science_value"]),
+        grid_checksums=grid_hashes(grids, ["science_value"]),
         grids_produced=["science_value"],
         processing_chain=chain,
         caveats=[
@@ -851,6 +865,7 @@ def fetch_all(registry: ProvenanceRegistry) -> dict[str, np.ndarray]:
         native_resolution_m=CELL_EW_M,
         license="Derived from public domain inputs",
         checksum_sha256=sha256_of_array(grids["confidence"]),
+        grid_checksums=grid_hashes(grids, ["confidence"]),
         grids_produced=["confidence"],
         processing_chain=[
             f"base = {base} (elevation source {dem.native_resolution_m:.0f} m/px "

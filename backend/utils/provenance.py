@@ -87,6 +87,12 @@ class DataSource:
     # Integrity and retrieval
     retrieved_at: Optional[str] = None
     checksum_sha256: Optional[str] = None
+    # Per-grid checksums, keyed by grid name. `checksum_sha256` above covers only
+    # one grid, which is ambiguous for a source that produces several (slope and
+    # traversability, or the two CRISM mineral indices) — an auditor recomputing
+    # hashes cannot tell which grid the single value refers to. This maps every
+    # produced grid to its own hash so each one is independently verifiable.
+    grid_checksums: dict[str, str] = field(default_factory=dict)
     published_checksum_md5: Optional[str] = None
     bytes_read: Optional[int] = None
 
