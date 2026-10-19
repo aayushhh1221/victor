@@ -31,7 +31,6 @@ interface InfoBarProps {
   environment?: EnvironmentResponse | null;
 }
 
-const NOT_INGESTED = 'Data source not yet ingested';
 
 function InfoCard({
   icon,
@@ -122,22 +121,10 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
   })();
 
   // ── Environmental cards ───────────────────────────────────────────────────
-  // The endpoint's own `notes` string is the authoritative explanation for a
-  // null, so prefer it over a sentence written here.
-  const envNotes = environment?.notes?.trim() || null;
-
   const dayTemp = environment?.surface_temperature_day_c ?? null;
   const hasTemp = dayTemp != null;
-  const tempTooltip = hasTemp
-    ? `Daytime surface temperature · ${environment?.temperature_source ?? 'source not reported'}`
-    : envNotes
-    ?? 'Surface temperature: MCS/THEMIS atmospheric products are not yet ingested';
-
   const dustTau = environment?.dust_opacity_tau ?? null;
   const hasDust = dustTau != null;
-  const dustTooltip = hasDust
-    ? `Column dust opacity · ${environment?.dust_opacity_source ?? 'source not reported'}`
-    : envNotes ?? 'Dust opacity: MCS atmospheric products are not yet ingested';
 
   return (
     <div
@@ -182,27 +169,35 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
         />
         <InfoCard
           icon={<Thermometer size={16} />}
-          label="Current Conditions (Est.)"
+          label="Surface Temp. (Daytime)"
           value={hasTemp ? `${dayTemp} °C` : '—'}
           sub={
             hasTemp
               ? `Daytime · ${environment?.temperature_source ?? 'source not reported'}`
-              : NOT_INGESTED
+              : 'Not available — MCS/MEDA data not ingested'
           }
           unavailable={!hasTemp}
-          tooltip={tempTooltip}
+          tooltip={
+            hasTemp
+              ? `Source: ${environment?.temperature_source ?? 'not reported'}`
+              : (environment?.notes ?? 'Temperature data unavailable. The backend does not currently ingest a real-time temperature source for this field. Value will appear when an appropriately sourced API field exists.')
+          }
         />
         <InfoCard
           icon={<Wind size={16} />}
-          label="Atmospheric Dust"
+          label="Atmospheric Dust (τ)"
           value={hasDust ? `τ ${dustTau}` : '—'}
           sub={
             hasDust
               ? environment?.dust_opacity_source ?? 'source not reported'
-              : NOT_INGESTED
+              : 'Not available — MCS data not ingested'
           }
           unavailable={!hasDust}
-          tooltip={dustTooltip}
+          tooltip={
+            hasDust
+              ? `Source: ${environment?.dust_opacity_source ?? 'not reported'}`
+              : (environment?.notes ?? 'Dust optical depth unavailable. The MCS (Mars Climate Sounder) data source is not yet ingested. Value will appear when a real atmospheric measurement is available.')
+          }
         />
       </div>
     </div>

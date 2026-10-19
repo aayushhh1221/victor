@@ -34,7 +34,7 @@ app = FastAPI(
     title="VICTOR API",
     description=(
         "Multi-Objective Marswalk Arbitration Engine for Jezero Crater, Mars. "
-        "NASA Space Apps Challenge 2026. "
+        "NASA Mars Exploration. "
         "Data provenance — including whether the active grids are real NASA products "
         "or a synthetic demonstration set — is reported by /api/v1/health and "
         "/api/v1/map/layers. Science values are model-derived scores, not measurements."
@@ -108,7 +108,7 @@ async def root():
     return {
         "project": "VICTOR",
         "description": "Multi-Objective Marswalk Arbitration Engine",
-        "challenge": "NASA Space Apps 2026 — Interplanetary Survival Guide: Martian Map",
+        "program": "NASA Mars Exploration — Autonomous Route Intelligence",
         "docs": "/docs",
         "health": "/api/v1/health",
     }

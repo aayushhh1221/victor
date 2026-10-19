@@ -76,8 +76,8 @@
   --risk-extreme:          #EF4444;
 
   /* Map pins & canvas */
-  --map-base:              #C8A882;
-  --map-border:            #A0522D;
+  --map-base:              #0B0F19;
+  --map-border:            #1E293B;
   --pin-start:             #22C55E;
   --pin-dest:              #EF4444;
   --pin-stop:              #F59E0B;
@@ -94,7 +94,7 @@
   --layer-traverse:        #A855F7;
 
   /* Leaflet */
-  --leaflet-bg:         #C8A882;
+  --leaflet-bg:         #0B0F19;
   --leaflet-tooltip-bg: rgba(255, 255, 255, 0.97);
   --leaflet-tooltip-color: #0F1923;
   --leaflet-tooltip-border: rgba(0, 0, 0, 0.15);
@@ -173,8 +173,8 @@
   --risk-extreme:          #EF4444;
 
   /* Map pins & canvas */
-  --map-base:              #1A0A00;
-  --map-border:            #4A2000;
+  --map-base:              #06090F;
+  --map-border:            #1E293B;
   --pin-start:             #22C55E;
   --pin-dest:              #EF4444;
   --pin-stop:              #F59E0B;
@@ -191,7 +191,7 @@
   --layer-traverse:        #A855F7;
 
   /* Leaflet */
-  --leaflet-bg:         #1A0A00;
+  --leaflet-bg:         #06090F;
   --leaflet-tooltip-bg: rgba(11, 25, 41, 0.97);
   --leaflet-tooltip-color: #E8EDF3;
   --leaflet-tooltip-border: rgba(255, 255, 255, 0.15);
@@ -295,7 +295,7 @@ html, body {
 }
 
 .metric-value {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-family: var(--font-mono, 'JetBrains Mono', 'Courier New', monospace);
   font-size: 14px;
   color: var(--text-primary);
   font-weight: 500;
@@ -446,6 +446,21 @@ html, body {
   height: 2px;
   background: var(--accent);
   border-radius: 2px 2px 0 0;
+}
+
+/* ── Header accent bar ─────────────────────────────────────────────────── */
+header {
+  box-shadow: 0 1px 0 var(--border);
+}
+header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+  z-index: 1;
 }
 
 /* ── Opacity slider ─────────────────────────────────────────────────────── */

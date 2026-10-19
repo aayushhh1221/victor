@@ -27,8 +27,8 @@ import {
   MethodologyView, AboutView, DataSourcesView, EnvironmentalView,
   MarsExplorerView, DataLayersTabView, SystemStatusView,
 } from '@/components/panels/StaticViews';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { MapPin, Play, AlertTriangle, Navigation, ShieldCheck } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { MapPin, Play, AlertTriangle, Navigation, ShieldCheck, Mountain, FlaskConical, TrendingUp, ChevronDown, ChevronUp, Crosshair } from 'lucide-react';
 import { withAlpha } from '@/utils/color';
 
 // Dynamic import for Leaflet (SSR unsafe)
@@ -61,7 +61,49 @@ const DEFAULT_CONSTRAINTS: MissionConstraints = {
  * that response and enables the first basemap the backend confirms it can
  * render, so the map never requests tiles for a layer we have not verified.
  */
-const DEFAULT_LAYERS: ActiveLayer[] = [];
+const DEFAULT_LAYERS: ActiveLayer[] = [
+  { id: 'imagery', visible: true, opacity: 1.0 },
+  { id: 'perseverance_traverse', visible: true, opacity: 0.8 },
+];
+
+interface MissionPreset {
+  id: string;
+  name: string;
+  start: Coordinate;
+  destination: Coordinate;
+  desc: string;
+}
+
+const MISSION_PRESETS: MissionPreset[] = [
+  {
+    id: 'perseverance',
+    name: 'Séítah → Ancient Delta (Perseverance Traverse)',
+    start: { lat: 18.44, lon: 77.45 },
+    destination: { lat: 18.48, lon: 77.24 },
+    desc: 'Historical Mars 2020 landing site traverse across crater floor toward river delta.',
+  },
+  {
+    id: 'delta-fan',
+    name: 'Crater Floor → Delta Fan',
+    start: { lat: 18.432, lon: 77.425 },
+    destination: { lat: 18.461, lon: 77.330 },
+    desc: 'Traverse across basaltic sands to Hawksbill Gap layered delta deposits.',
+  },
+  {
+    id: 'three-forks',
+    name: 'Three Forks → Margin Unit',
+    start: { lat: 18.452, lon: 77.352 },
+    destination: { lat: 18.498, lon: 77.240 },
+    desc: 'Sample cache depot route ascending to carbonate-bearing rim margin.',
+  },
+  {
+    id: 'kodiak',
+    name: 'Kodiak Butte Pass → Crater Rim',
+    start: { lat: 18.440, lon: 77.385 },
+    destination: { lat: 18.490, lon: 77.360 },
+    desc: 'Steep geological scouting mission toward Jezero crater northern rim.',
+  },
+];
 
 type PinMode = 'start' | 'destination' | null;
 
@@ -146,6 +188,7 @@ export default function PlannerPage() {
   const [pinMode, setPinMode] = useState<PinMode>('start');
   const [start, setStart] = useState<Coordinate | null>(null);
   const [destination, setDestination] = useState<Coordinate | null>(null);
+  const [focusCoord, setFocusCoord] = useState<Coordinate | null>(null);
   const [layers, setLayers] = useState<ActiveLayer[]>(DEFAULT_LAYERS);
   const [scienceTargets, setScienceTargets] = useState<ScienceTarget[]>([]);
 
@@ -173,6 +216,8 @@ export default function PlannerPage() {
   const [activeTab, setActiveTab] = useState('planner');
   const [sidebarSection, setSidebarSection] = useState('plan');
   const [showSciencePanel, setShowSciencePanel] = useState(false);
+  const [bottomPanelCollapsed, setBottomPanelCollapsed] = useState(false);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('perseverance');
   const [scienceLabel, setScienceLabel] = useState('');
 
   // Compute the main view from both tab and sidebar state
@@ -248,16 +293,45 @@ export default function PlannerPage() {
 
   const handleMapClick = useCallback(
     (coord: Coordinate) => {
+      const clamped: Coordinate = {
+        lat: Math.max(18.01, Math.min(18.89, parseFloat(coord.lat.toFixed(4)))),
+        lon: Math.max(77.01, Math.min(77.99, parseFloat(coord.lon.toFixed(4)))),
+      };
+
       if (pinMode === 'start') {
-        setStart(coord);
-        setPinMode('destination');
+        setStart(clamped);
+        // If destination has not been set yet, transition to destination mode; otherwise finish placement
+        setPinMode(!destination ? 'destination' : null);
+        setComputeError(null);
+        setSelectedPresetId('');
       } else if (pinMode === 'destination') {
-        setDestination(coord);
+        setDestination(clamped);
         setPinMode(null);
+        setComputeError(null);
+        setSelectedPresetId('');
       }
+      // When pinMode is null, map clicks do NOT move pins. Markers can still be dragged directly.
     },
-    [pinMode],
+    [pinMode, destination],
   );
+
+  const handlePinDrag = useCallback((type: 'start' | 'destination', coord: Coordinate) => {
+    if (type === 'start') {
+      setStart(coord);
+    } else {
+      setDestination(coord);
+    }
+    setComputeError(null);
+    setSelectedPresetId('');
+  }, []);
+
+  const handleSelectPreset = useCallback((preset: MissionPreset) => {
+    setSelectedPresetId(preset.id);
+    setStart(preset.start);
+    setDestination(preset.destination);
+    setPinMode(null);
+    setComputeError(null);
+  }, []);
 
   const handleSegmentClick = useCallback(
     async (strategy: RouteStrategy, segmentId: number) => {
@@ -279,6 +353,11 @@ export default function PlannerPage() {
   const handleComputeRoutes = async () => {
     if (!start || !destination) {
       setComputeError('Place start and destination markers on the map first.');
+      return;
+    }
+    const dist = Math.hypot(destination.lat - start.lat, destination.lon - start.lon);
+    if (dist < 0.001) {
+      setComputeError('Start and destination must be distinct locations (at least 100m apart).');
       return;
     }
     setComputeError(null);
@@ -306,16 +385,19 @@ export default function PlannerPage() {
   /** Whether the advisory terrain-archetype layer is currently on the map. */
   const terrainClassVisible = layers.some((l) => l.id === 'terrain_class' && l.visible);
 
-  // Build profile chart data from active strategy segments
+  // Build profile chart data from active strategy segments.
+  // Shows elevation change (cumulative) + terrain traversability cost — matching reference.png.
   const chartData = activeStrategy && routeResult
     ? (() => {
         let cumDist = 0;
+        let cumElev = 0;
         return (routeResult.strategies[activeStrategy]?.segments ?? []).map((seg) => {
           cumDist += seg.distance_m / 1000;
+          cumElev += seg.elevation_change_m;
           return {
-            km: cumDist.toFixed(2),
-            science: parseFloat(seg.science_value.toFixed(4)),
-            hazard: parseFloat(seg.hazard_score.toFixed(3)),
+            km: parseFloat(cumDist.toFixed(2)),
+            elevation: parseFloat(cumElev.toFixed(1)),
+            terrain: parseFloat(seg.traversability_cost.toFixed(2)),
           };
         });
       })()
@@ -564,7 +646,7 @@ export default function PlannerPage() {
               {/* Pin mode buttons */}
               <button
                 id="btn-place-start"
-                onClick={() => setPinMode('start')}
+                onClick={() => setPinMode((m) => (m === 'start' ? null : 'start'))}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors`}
                 style={{
                   background: pinMode === 'start' ? 'var(--pin-start)' : 'var(--surface-sunken)',
@@ -572,11 +654,11 @@ export default function PlannerPage() {
                   border: `1px solid ${pinMode === 'start' ? 'var(--pin-start)' : 'var(--border)'}`,
                 }}
               >
-                <MapPin size={11} /> Start
+                <MapPin size={11} /> {pinMode === 'start' ? 'Placing Start…' : 'Start'}
               </button>
               <button
                 id="btn-place-dest"
-                onClick={() => setPinMode('destination')}
+                onClick={() => setPinMode((m) => (m === 'destination' ? null : 'destination'))}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors"
                 style={{
                   background: pinMode === 'destination' ? 'var(--pin-dest)' : 'var(--surface-sunken)',
@@ -584,7 +666,7 @@ export default function PlannerPage() {
                   border: `1px solid ${pinMode === 'destination' ? 'var(--pin-dest)' : 'var(--border)'}`,
                 }}
               >
-                <MapPin size={11} /> Destination
+                <MapPin size={11} /> {pinMode === 'destination' ? 'Placing Dest…' : 'Destination'}
               </button>
               {(start || destination) && (
                 <button
@@ -644,10 +726,39 @@ export default function PlannerPage() {
               onMapClick={handleMapClick}
               onSegmentClick={handleSegmentClick}
               activeStrategy={activeStrategy}
+              pinMode={pinMode}
+              onPinDrag={handlePinDrag}
+              focusCoord={focusCoord}
+              onOpenGlobalExplorer={() => handleSidebarChange('map')}
             />
 
-            {/* Data-mode banner — renders for every mode, including VERIFIED */}
-            {banner && (
+            {/* Guidance banner for placing start / destination pins */}
+            {pinMode && (
+              <div
+                className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium shadow-md backdrop-blur select-none"
+                style={{
+                  background: 'rgba(15, 23, 42, 0.92)',
+                  border: `1px solid ${pinMode === 'start' ? 'var(--pin-start)' : 'var(--pin-dest)'}`,
+                  color: '#FFFFFF',
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: pinMode === 'start' ? 'var(--pin-start)' : 'var(--pin-dest)' }}
+                />
+                <span>Click map to place {pinMode === 'start' ? 'Start' : 'Destination'}</span>
+                <button
+                  onClick={() => setPinMode(null)}
+                  className="ml-1 text-[11px] text-slate-400 hover:text-white px-1"
+                  aria-label="Cancel"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Data-mode banner — only show when synthetic DEMONSTRATION warning is necessary */}
+            {banner && bannerMode === 'DEMONSTRATION' && (
               <div
                 className={`absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded text-xs ${banner.cls}`}
                 title={banner.title}
@@ -686,45 +797,116 @@ export default function PlannerPage() {
             )}
           </div>
 
-          {/* Bottom panel — route profile */}
+          {/* Bottom panel toggle bar */}
           {showSciencePanel && routeResult && (
             <div
-              className="border-t flex-shrink-0"
+              className="flex items-center justify-between px-4 py-1.5 border-t flex-shrink-0 select-none"
               style={{
-                background: 'var(--surface-raised)',
+                background: 'var(--surface)',
                 borderColor: 'var(--border)',
-                height: '200px',
               }}
             >
-              <div className="flex h-full">
-                {/* Chart */}
-                <div className="flex-1 p-3">
-                  <p className="section-heading mb-2">
-                    {activeStrategy
-                      ? `${STRATEGY_META[activeStrategy].label} — Route Profile`
-                      : 'Route Profile'}
+              <div className="flex items-center gap-2">
+                <TrendingUp size={13} style={{ color: 'var(--accent)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Route Analysis & Mission Profiles
+                </span>
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  ({Object.keys(routeResult.strategies).length} computed strategies)
+                </span>
+              </div>
+              <button
+                id="btn-toggle-bottom-panel"
+                onClick={() => setBottomPanelCollapsed((v) => !v)}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded transition-colors font-medium hover:brightness-110"
+                style={{
+                  color: 'var(--text-secondary)',
+                  background: 'var(--surface-sunken)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                {bottomPanelCollapsed ? (
+                  <>
+                    <ChevronUp size={12} /> Show Route Analysis
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={12} /> Maximize Map View
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Bottom panel — three columns: Route Profile | Route Risk | Science Opps */}
+          {showSciencePanel && routeResult && !bottomPanelCollapsed && (() => {
+            const activeRoute = activeStrategy ? routeResult.strategies[activeStrategy] : null;
+            const metrics = activeRoute?.metrics ?? null;
+
+            // Inline risk bar helper
+            const RiskBar = ({ label, value, max, color, unit = '', icon }: {
+              label: string; value: number | null; max: number;
+              color: string; unit?: string; icon: React.ReactNode;
+            }) => {
+              const pct = value != null ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+              return (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 flex items-center justify-center rounded flex-shrink-0"
+                    style={{ background: withAlpha(color, 12), color }}>
+                    {icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[10px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                      <span className="text-[10px] font-mono" style={{ color }}>
+                        {value != null ? `${value.toFixed(1)}${unit}` : '—'}
+                      </span>
+                    </div>
+                    <div className="risk-bar-track">
+                      <div className="risk-bar-fill" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div
+                className="border-t flex-shrink-0 flex"
+                style={{
+                  background: 'var(--surface-raised)',
+                  borderColor: 'var(--border)',
+                  height: '220px',
+                }}
+              >
+                {/* Column 1: Route Profile — elevation + terrain difficulty */}
+                <div className="flex-1 min-w-0 p-3 border-r" style={{ borderColor: 'var(--border)' }}>
+                  <p className="section-heading mb-1.5">
+                    {activeStrategy ? `${STRATEGY_META[activeStrategy].label} — Route Profile` : 'Route Profile'}
+                  </p>
+                  <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
+                    Elevation and terrain difficulty along selected route
                   </p>
                   {activeStrategy && chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={150}>
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                    <ResponsiveContainer width="100%" height={148}>
+                      <LineChart data={chartData} margin={{ top: 2, right: 20, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                         <XAxis
                           dataKey="km"
-                          tick={{ fontSize: 10 }}
-                          label={{ value: 'km', position: 'insideRight', fontSize: 10 }}
+                          tick={{ fontSize: 9, fill: 'var(--chart-text)' }}
+                          label={{ value: 'Distance (km)', position: 'insideBottomRight', offset: -4, fontSize: 9, fill: 'var(--chart-text)' }}
                         />
                         <YAxis
-                          yAxisId="science"
-                          tick={{ fontSize: 10 }}
-                          domain={[0, 1]}
-                          label={{ value: 'Science (0–1)', angle: -90, position: 'insideLeft', fontSize: 9 }}
+                          yAxisId="elev"
+                          tick={{ fontSize: 9, fill: 'var(--chart-text)' }}
+                          label={{ value: 'Elev (m)', angle: -90, position: 'insideLeft', offset: 12, fontSize: 9, fill: 'var(--chart-text)' }}
                         />
                         <YAxis
-                          yAxisId="hazard"
+                          yAxisId="terrain"
                           orientation="right"
-                          tick={{ fontSize: 10 }}
+                          tick={{ fontSize: 9, fill: 'var(--chart-text)' }}
                           domain={[0, 10]}
-                          label={{ value: 'Hazard (0–10)', angle: 90, position: 'insideRight', fontSize: 9 }}
+                          label={{ value: 'Difficulty', angle: 90, position: 'insideRight', offset: 8, fontSize: 9, fill: 'var(--chart-text)' }}
                         />
                         <Tooltip
                           contentStyle={{
@@ -734,61 +916,178 @@ export default function PlannerPage() {
                             color: 'var(--text-primary)',
                           }}
                           labelStyle={{ color: 'var(--text-muted)' }}
+                          labelFormatter={(v) => `${v} km`}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 9, paddingTop: 0 }} />
+                        <Line
+                          yAxisId="elev"
+                          type="monotone"
+                          dataKey="elevation"
+                          stroke="var(--accent)"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Elevation"
                         />
                         <Line
-                          yAxisId="science"
+                          yAxisId="terrain"
                           type="monotone"
-                          dataKey="science"
-                          stroke="var(--tier-1)"
+                          dataKey="terrain"
+                          stroke="var(--color-warning)"
                           strokeWidth={1.5}
                           dot={false}
-                          name="Science (MODEL, 0–1)"
-                        />
-                        <Line
-                          yAxisId="hazard"
-                          type="monotone"
-                          dataKey="hazard"
-                          stroke="var(--color-danger)"
-                          strokeWidth={1}
-                          dot={false}
-                          name="Hazard (0–10)"
+                          name="Terrain Difficulty"
                         />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-32 flex items-center justify-center">
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        Click a strategy row to view its profile
+                        Select a strategy to view its profile
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* Trade-off summary */}
-                <div
-                  className="w-64 border-l p-3"
-                  style={{ borderColor: 'var(--border)' }}
-                >
-                  <p className="section-heading mb-2">Trade-off Summary</p>
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {routeResult.comparison.trade_off_summary}
+                {/* Column 2: Route Risk Assessment */}
+                <div className="w-[220px] flex-shrink-0 p-3 border-r" style={{ borderColor: 'var(--border)' }}>
+                  <p className="section-heading mb-1">Route Risk Assessment</p>
+                  <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Key factors affecting route safety
                   </p>
-                  {dataMode === 'DEMONSTRATION' && (
-                    <p className="text-[10px] mt-2" style={{ color: 'var(--mode-demo)' }}>
-                      Values computed from DEMONSTRATION data
+                  {metrics ? (
+                    <div className="mt-1">
+                      <RiskBar
+                        label="Terrain Hazard"
+                        value={metrics.avg_hazard_score}
+                        max={10}
+                        color={metrics.avg_hazard_score < 3 ? 'var(--color-success)' : metrics.avg_hazard_score < 6 ? 'var(--color-warning)' : 'var(--color-danger)'}
+                        icon={<AlertTriangle size={12} />}
+                      />
+                      <RiskBar
+                        label="Max Slope"
+                        value={metrics.max_slope_deg}
+                        max={30}
+                        color={metrics.max_slope_deg < 10 ? 'var(--color-success)' : metrics.max_slope_deg < 20 ? 'var(--color-warning)' : 'var(--color-danger)'}
+                        unit="°"
+                        icon={<Mountain size={12} />}
+                      />
+                      <RiskBar
+                        label="Science Value"
+                        value={metrics.avg_science_value}
+                        max={1}
+                        color="var(--tier-1)"
+                        icon={<FlaskConical size={12} />}
+                      />
+                      <RiskBar
+                        label="Elevation Gain"
+                        value={metrics.elevation_gain_m}
+                        max={500}
+                        color="var(--layer-elevation)"
+                        unit=" m"
+                        icon={<TrendingUp size={12} />}
+                      />
+                      <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Data Confidence</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                              metrics.confidence === 'HIGH' ? 'value-high' :
+                              metrics.confidence === 'MODERATE' ? 'value-medium' : 'value-low'
+                            }`}
+                          >
+                            {metrics.confidence}
+                          </span>
+                        </div>
+                        {dataMode === 'DEMONSTRATION' && (
+                          <p className="text-[10px] mt-1" style={{ color: 'var(--mode-demo)' }}>
+                            DEMONSTRATION data
+                          </p>
+                        )}
+                        <button
+                          className="text-[10px] mt-1.5 block"
+                          style={{ color: 'var(--accent)' }}
+                          onClick={() => handleSidebarChange('report')}
+                        >
+                          Mission report &amp; briefing →
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center h-24">
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Select a strategy</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Column 3: Science Opportunities */}
+                <div className="w-[240px] flex-shrink-0 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="section-heading">Science Opportunities</p>
+                    <button
+                      className="text-[10px]"
+                      style={{ color: 'var(--accent)' }}
+                      onClick={() => handleSidebarChange('science')}
+                    >
+                      View All →
+                    </button>
+                  </div>
+                  <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>
+                    High-value targets near the route
+                  </p>
+                  {activeRoute?.science_targets_nearby?.length ? (
+                    activeRoute.science_targets_nearby.slice(0, 3).map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-2 mb-1.5 p-1.5 rounded"
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+                      >
+                        {/* Colour swatch */}
+                        <div
+                          className="w-8 h-8 rounded flex-shrink-0 flex items-center justify-center"
+                          style={{
+                            background: withAlpha(
+                              ['var(--tier-1)', 'var(--tier-2)', 'var(--tier-3)', 'var(--tier-4)'][t.tier - 1] ?? 'var(--tier-4)',
+                              15
+                            ),
+                          }}
+                        >
+                          <FlaskConical size={14}
+                            style={{ color: ['var(--tier-1)', 'var(--tier-2)', 'var(--tier-3)', 'var(--tier-4)'][t.tier - 1] ?? 'var(--tier-4)' }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                            {t.name}
+                          </p>
+                          <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            {t.distance_from_route_m != null ? `${t.distance_from_route_m.toFixed(0)} m away` : t.type}
+                          </p>
+                        </div>
+                        <span
+                          className="text-[10px] px-1 py-0.5 rounded font-bold flex-shrink-0"
+                          style={{
+                            color: ['var(--tier-1)', 'var(--tier-2)', 'var(--tier-3)', 'var(--tier-4)'][t.tier - 1],
+                            background: 'var(--surface-sunken)',
+                          }}
+                        >
+                          T{t.tier}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs mt-4 text-center" style={{ color: 'var(--text-muted)' }}>
+                      {activeStrategy ? 'No targets near this route' : 'Select a strategy'}
                     </p>
                   )}
-                  <button
-                    className="text-xs mt-2"
-                    style={{ color: 'var(--accent)' }}
-                    onClick={() => handleSidebarChange('report')}
-                  >
-                    Mission briefing &amp; report export →
-                  </button>
+                  {scienceLabel && (
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--mode-demo)' }}>
+                      {scienceLabel}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Compute error */}
           {computeError && (
@@ -806,11 +1105,52 @@ export default function PlannerPage() {
           )}
         </div>
 
-        {/* Right panel — 300px */}
+        {/* Right panel — 360px (trims map container width by ~10% to eliminate blank side gutters) */}
         <div
-          className="w-[300px] flex-shrink-0 flex flex-col border-l overflow-y-auto"
+          className="w-[360px] flex-shrink-0 flex flex-col border-l overflow-y-auto"
           style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}
         >
+          {/* Mission Presets */}
+          <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="section-heading">Mission Presets</p>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-sunken)', color: 'var(--text-muted)' }}>
+                Jezero Crater
+              </span>
+            </div>
+            <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
+              Choose a verified historical traverse or place custom pins on the map:
+            </p>
+            <div className="space-y-1.5">
+              {MISSION_PRESETS.map((preset) => {
+                const isSelected = selectedPresetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleSelectPreset(preset)}
+                    className="w-full text-left p-2 rounded text-xs transition-all flex flex-col gap-0.5 hover:brightness-105"
+                    style={{
+                      background: isSelected ? 'var(--surface-sunken)' : 'transparent',
+                      border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs" style={{ color: isSelected ? 'var(--accent)' : 'var(--text-primary)' }}>
+                        {preset.name}
+                      </span>
+                      {isSelected && (
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                      {preset.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Mission parameters */}
           <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
             <p className="section-heading mb-3">Mission Parameters</p>
@@ -856,27 +1196,106 @@ export default function PlannerPage() {
               </div>
             </div>
 
-            {/* Pins status */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            {/* Waypoints & Coordinates */}
+            <div className="mt-3 space-y-2">
               <div
-                className="rounded px-2 py-1.5 text-xs"
+                className="rounded p-2 text-xs flex items-center justify-between cursor-pointer transition-all hover:brightness-105"
+                onClick={() => start && setFocusCoord({ ...start })}
+                title={start ? 'Click to center map on Start waypoint' : undefined}
                 style={{
                   background: start ? 'var(--color-success-bg)' : 'var(--surface-sunken)',
-                  color: start ? 'var(--color-success)' : 'var(--text-disabled)',
                   border: `1px solid ${start ? 'var(--color-success-border)' : 'var(--border)'}`,
                 }}
               >
-                {start ? `▲ ${start.lat.toFixed(3)}°N` : 'No start set'}
+                <div className="min-w-0 pr-2">
+                  <span className="font-semibold block" style={{ color: 'var(--pin-start)' }}>
+                    ▲ Start Waypoint
+                  </span>
+                  <span className="font-mono text-[11px] block truncate" style={{ color: start ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {start ? `${start.lat.toFixed(4)}°N, ${start.lon.toFixed(4)}°E` : 'Not placed yet'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {start && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFocusCoord({ ...start });
+                      }}
+                      className="p-1 rounded hover:bg-black/10 transition-colors"
+                      title="Center map on Start"
+                      style={{ color: 'var(--pin-start)' }}
+                    >
+                      <Crosshair size={13} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPinMode((m) => (m === 'start' ? null : 'start'));
+                    }}
+                    className="px-2 py-1 rounded text-[11px] font-medium transition-colors"
+                    style={{
+                      background: pinMode === 'start' ? 'var(--pin-start)' : 'var(--surface-raised)',
+                      color: pinMode === 'start' ? '#fff' : 'var(--text-secondary)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    {pinMode === 'start' ? 'Cancel' : start ? 'Move' : 'Place'}
+                  </button>
+                </div>
               </div>
+
               <div
-                className="rounded px-2 py-1.5 text-xs"
+                className="rounded p-2 text-xs flex items-center justify-between cursor-pointer transition-all hover:brightness-105"
+                onClick={() => destination && setFocusCoord({ ...destination })}
+                title={destination ? 'Click to center map on Destination waypoint' : undefined}
                 style={{
                   background: destination ? 'var(--color-danger-bg)' : 'var(--surface-sunken)',
-                  color: destination ? 'var(--color-danger)' : 'var(--text-disabled)',
                   border: `1px solid ${destination ? 'var(--color-danger-border)' : 'var(--border)'}`,
                 }}
               >
-                {destination ? `● ${destination.lat.toFixed(3)}°N` : 'No dest set'}
+                <div className="min-w-0 pr-2">
+                  <span className="font-semibold block" style={{ color: 'var(--pin-dest)' }}>
+                    ● Destination
+                  </span>
+                  <span className="font-mono text-[11px] block truncate" style={{ color: destination ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {destination ? `${destination.lat.toFixed(4)}°N, ${destination.lon.toFixed(4)}°E` : 'Not placed yet'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {destination && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFocusCoord({ ...destination });
+                      }}
+                      className="p-1 rounded hover:bg-black/10 transition-colors"
+                      title="Center map on Destination"
+                      style={{ color: 'var(--pin-dest)' }}
+                    >
+                      <Crosshair size={13} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPinMode((m) => (m === 'destination' ? null : 'destination'));
+                    }}
+                    className="px-2 py-1 rounded text-[11px] font-medium transition-colors"
+                    style={{
+                      background: pinMode === 'destination' ? 'var(--pin-dest)' : 'var(--surface-raised)',
+                      color: pinMode === 'destination' ? '#fff' : 'var(--text-secondary)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    {pinMode === 'destination' ? 'Cancel' : destination ? 'Move' : 'Place'}
+                  </button>
+                </div>
               </div>
             </div>
 

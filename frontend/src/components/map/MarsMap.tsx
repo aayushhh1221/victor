@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { Coordinate, Route, RouteStrategy, ScienceTarget, ActiveLayer } from '@/types';
 import { STRATEGY_META } from '@/types';
 import {
@@ -8,10 +8,13 @@ import {
   leafletToMars,
   pixelSpanToKm,
   LEAFLET_BOUNDS,
+  EXTENT,
+  TILE_EXTENT,
 } from '@/utils/marsProjection';
 import { getTileUrlTemplate } from '@/services/api';
 import { useTheme } from '@/utils/theme';
 import { readToken } from '@/utils/color';
+import { Crosshair, Globe } from 'lucide-react';
 
 // Dynamic import guard for SSR (Leaflet requires window)
 let L: typeof import('leaflet') | null = null;
@@ -43,6 +46,10 @@ interface MarsMapProps {
   onMapClick: (coord: Coordinate) => void;
   onSegmentClick: (strategy: RouteStrategy, segmentId: number) => void;
   activeStrategy: RouteStrategy | null;
+  pinMode?: 'start' | 'destination' | null;
+  onPinDrag?: (type: 'start' | 'destination', coord: Coordinate) => void;
+  focusCoord?: Coordinate | null;
+  onOpenGlobalExplorer?: () => void;
 }
 
 /** Pixel distance sampled from the live map to derive the current scale. */
@@ -65,6 +72,9 @@ function formatScaleNumber(v: number): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, '');
 }
 
+/** Base layer IDs — only these drive the tile render state indicator. */
+const BASE_LAYER_IDS = ['imagery', 'terrain'];
+
 export default function MarsMap({
   start,
   destination,
@@ -74,6 +84,10 @@ export default function MarsMap({
   onMapClick,
   onSegmentClick,
   activeStrategy,
+  pinMode,
+  onPinDrag,
+  focusCoord,
+  onOpenGlobalExplorer,
 }: MarsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -83,11 +97,43 @@ export default function MarsMap({
   const sciLayersRef = useRef<any[]>([]);
   const bgRectRef = useRef<any>(null);
 
+  // Keep latest callbacks in refs so event listeners registered once on mount
+  // never execute stale closures.
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
+
+  const onPinDragRef = useRef(onPinDrag);
+  onPinDragRef.current = onPinDrag;
+
+  /**
+   * Tile render state for the active basemap.
+   *
+   * - 'loading'       — base layer tile requests in flight
+   * - 'ready'         — one or more base tiles loaded with no terminal error
+   * - 'error'         — all requested base tiles failed / endpoint unreachable
+   * - 'no-base-layer' — no usable basemap in the activeLayers prop at all
+   * - null            — map not yet initialised
+   */
+  type TileRenderState = 'loading' | 'ready' | 'error' | 'no-base-layer' | null;
+  const [tileState, setTileState] = useState<TileRenderState>(null);
+  const [tileErrorLayer, setTileErrorLayer] = useState<string | null>(null);
+  // Track in-flight tile counts per base layer to decide when all have failed
+  const tileInflightRef = useRef<Record<string, number>>({});
+  const tileLoadedRef = useRef<Record<string, number>>({});
+  const tileErroredRef = useRef<Record<string, number>>({});
+
   // Leaflet vector styles take concrete colour values, so every token below is
   // resolved at paint time. `theme` must therefore appear in the dependency
   // array of every effect that reads one, or the canvas keeps the old theme's
   // colours after a toggle.
   const { theme } = useTheme();
+
+  // Pan / center on focusCoord when requested by waypoint cards
+  useEffect(() => {
+    if (!mapRef.current || !focusCoord) return;
+    const pos = marsToLeaflet(focusCoord.lat, focusCoord.lon);
+    mapRef.current.setView(pos, Math.max(mapRef.current.getZoom(), 2), { animate: true });
+  }, [focusCoord]);
 
   // Initialize Leaflet map on mount
   useEffect(() => {
@@ -95,57 +141,53 @@ export default function MarsMap({
 
     const map = L.map(containerRef.current, {
       crs: L.CRS.Simple,
-      minZoom: 1,
+      minZoom: 2,
       maxZoom: 5,
       zoomControl: false,
       attributionControl: false,
+      maxBoundsViscosity: 1.0,
     });
+
+    // Constrain panning to the Jezero study area with zero out-of-bounds void
+    const boundsBuffer = 16;
+    const panBounds: [[number, number], [number, number]] = [
+      [-boundsBuffer, -boundsBuffer],
+      [TILE_EXTENT + boundsBuffer, TILE_EXTENT + boundsBuffer],
+    ];
+    map.setMaxBounds(panBounds);
 
     // Add zoom control in top-right
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Set initial view to Jezero center
-    const center = marsToLeaflet(18.45, 77.5);
-    map.setView(center, 2);
+    // Initial view: center on central Jezero Crater at Zoom 2 (1024×1024px, completely fills width with zero blank gutters)
+    map.setView([TILE_EXTENT / 2, TILE_EXTENT / 2], 2);
 
-    // Click handler — convert Leaflet pixel → Mars lat/lon
+    // Resize observer to ensure the map always fits its container cleanly
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    });
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Click handler — always calls freshest onMapClick via ref
     map.on('click', (e: any) => {
       const { lat: ly, lng: lx } = e.latlng;
       const marsCoord = leafletToMars(ly, lx);
-      onMapClick(marsCoord);
+      onMapClickRef.current?.(marsCoord);
     });
 
     mapRef.current = map;
 
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
-      bgRectRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Mars-coloured background rectangle — restyled whenever the theme changes
-  useEffect(() => {
-    if (!mapRef.current || !L) return;
-    const fillColor = readToken('--leaflet-bg', '#C8A882');
-    const color = readToken('--map-border', '#A0522D');
-
-    if (bgRectRef.current) {
-      bgRectRef.current.setStyle({ fillColor, color });
-      return;
-    }
-    const bgRect = L.rectangle(LEAFLET_BOUNDS, {
-      fillColor,
-      fillOpacity: 1,
-      color,
-      weight: 1,
-      interactive: false,
-    });
-    bgRect.addTo(mapRef.current);
-    bgRect.bringToBack();
-    bgRectRef.current = bgRect;
-  }, [theme]);
 
   // Update tile and reference layers based on activeLayers prop
   useEffect(() => {
@@ -176,19 +218,54 @@ export default function MarsMap({
       }
 
       // Tile layers (imagery, terrain, elevation, thermal, hazard, science)
+      const isBase = BASE_LAYER_IDS.includes(layer.id);
+
       if (layer.visible) {
         if (!existing) {
           const tileLayer = L!.tileLayer(
             getTileUrlTemplate(layer.id),
             {
               tileSize: 256,
-              minZoom: 1,
+              minZoom: 2,
               maxZoom: 5,
               noWrap: true,
               bounds: LEAFLET_BOUNDS,
               opacity: layer.opacity,
             }
           );
+
+          // Track tile load state for basemap layers so the UI can surface
+          // loading / error / ready honestly without polling.
+          if (isBase) {
+            tileInflightRef.current[layer.id] = 0;
+            tileLoadedRef.current[layer.id] = 0;
+            tileErroredRef.current[layer.id] = 0;
+            setTileState('loading');
+            setTileErrorLayer(null);
+
+            tileLayer.on('tileloadstart', () => {
+              tileInflightRef.current[layer.id] = (tileInflightRef.current[layer.id] ?? 0) + 1;
+              setTileState('loading');
+            });
+
+            tileLayer.on('tileload', () => {
+              tileLoadedRef.current[layer.id] = (tileLoadedRef.current[layer.id] ?? 0) + 1;
+              // At least one tile loaded → ready (errors on other tiles don't override this)
+              setTileState('ready');
+              setTileErrorLayer(null);
+            });
+
+            tileLayer.on('tileerror', (_e: any) => {
+              tileErroredRef.current[layer.id] = (tileErroredRef.current[layer.id] ?? 0) + 1;
+              const loaded = tileLoadedRef.current[layer.id] ?? 0;
+              // Only transition to error state if no tile has loaded yet
+              if (loaded === 0) {
+                setTileState('error');
+                setTileErrorLayer(layer.id);
+              }
+            });
+          }
+
           tileLayer.addTo(mapRef.current);
           layersRef.current[layer.id] = tileLayer;
         } else {
@@ -198,9 +275,23 @@ export default function MarsMap({
         if (existing) {
           existing.remove();
           delete layersRef.current[layer.id];
+          // Clean up tracking state for removed base layers
+          if (isBase) {
+            delete tileInflightRef.current[layer.id];
+            delete tileLoadedRef.current[layer.id];
+            delete tileErroredRef.current[layer.id];
+          }
         }
       }
     });
+
+    // Check if any basemap is active; if not, set no-base-layer state
+    const hasActiveBase = activeLayers.some(
+      (l) => BASE_LAYER_IDS.includes(l.id) && l.visible,
+    );
+    if (!hasActiveBase) {
+      setTileState('no-base-layer');
+    }
   }, [activeLayers, theme]);
 
   // Update start/destination markers
@@ -211,32 +302,48 @@ export default function MarsMap({
 
     const pinRing = readToken('--surface', '#FFFFFF');
 
-    const addPin = (coord: Coordinate, color: string, label: string) => {
+    const addPin = (coord: Coordinate, color: string, label: string, isStart: boolean) => {
       const pos = marsToLeaflet(coord.lat, coord.lon);
       const icon = L!.divIcon({
         className: '',
         html: `
           <div style="
             background:${color};border:2px solid ${pinRing};border-radius:50% 50% 50% 0;
-            width:20px;height:20px;transform:rotate(-45deg);
-            box-shadow:0 2px 6px rgba(0,0,0,0.5)
+            width:22px;height:22px;transform:rotate(-45deg);
+            box-shadow:0 2px 8px rgba(0,0,0,0.6);
+            cursor:grab;
           "></div>
         `,
-        iconSize: [20, 20],
-        iconAnchor: [10, 20],
+        iconSize: [22, 22],
+        iconAnchor: [11, 22],
       });
-      const marker = L!.marker(pos, { icon })
-        .bindTooltip(label, { permanent: true, direction: 'right', offset: [12, -10] })
+      const marker = L!.marker(pos, { icon, draggable: true, zIndexOffset: isStart ? 1000 : 990 })
+        .bindTooltip(`${label} · Drag to adjust`, {
+          permanent: false,
+          direction: isStart ? 'left' : 'right',
+          offset: isStart ? [-14, -10] : [14, -10],
+        })
         .addTo(mapRef.current);
+
+      marker.on('dragend', (e: any) => {
+        const { lat: ly, lng: lx } = e.target.getLatLng();
+        const marsCoord = leafletToMars(ly, lx);
+        const clamped: Coordinate = {
+          lat: Math.max(EXTENT.lat_min, Math.min(EXTENT.lat_max, parseFloat(marsCoord.lat.toFixed(4)))),
+          lon: Math.max(EXTENT.lon_min, Math.min(EXTENT.lon_max, parseFloat(marsCoord.lon.toFixed(4)))),
+        };
+        onPinDragRef.current?.(isStart ? 'start' : 'destination', clamped);
+      });
+
       markersRef.current.push(marker);
     };
 
     const pinStart = readToken('--pin-start', '#22C55E');
     const pinDest = readToken('--pin-dest', '#EF4444');
 
-    if (start) addPin(start, pinStart, 'START');
-    if (destination) addPin(destination, pinDest, 'DEST');
-  }, [start, destination, theme]);
+    if (start) addPin(start, pinStart, 'START', true);
+    if (destination) addPin(destination, pinDest, 'DEST', false);
+  }, [start, destination, theme, onPinDrag]);
 
   // Draw route polylines
   useEffect(() => {
@@ -248,8 +355,8 @@ export default function MarsMap({
       if (!route) return;
       const meta = STRATEGY_META[strategyName as RouteStrategy];
       const isActive = activeStrategy === null || activeStrategy === strategyName;
-      const weight = isActive ? 3 : 1.5;
-      const opacity = isActive ? 0.9 : 0.3;
+      const weight = isActive ? 4 : 1.5;
+      const opacity = isActive ? 1.0 : 0.25;
 
       const latlngs = route.path.map((c) => marsToLeaflet(c.lat, c.lon));
       const polyline = L!.polyline(latlngs, {
@@ -318,6 +425,92 @@ export default function MarsMap({
     });
   }, [scienceTargets, theme]);
 
+  // Geographic landmark markers — subtle point markers with hover-only tooltips.
+  // No permanent text is plastered on the map; hovering reveals full geological details.
+  const landmarksRef = React.useRef<any[]>([]);
+  useEffect(() => {
+    if (!mapRef.current || !L) return;
+
+    landmarksRef.current.forEach((m) => m.remove());
+    landmarksRef.current = [];
+
+    const places = [
+      {
+        lat: 18.455,
+        lon: 77.43,
+        name: 'Jezero Crater',
+        type: 'Impact Basin',
+        desc: 'Mars 2020 landing site and ancient lake basin (~45 km diameter).',
+      },
+      {
+        lat: 18.473,
+        lon: 77.335,
+        name: 'Ancient Delta',
+        type: 'Fluvial Deposit',
+        desc: 'Layered clay and carbonate-rich river fan formation.',
+      },
+      {
+        lat: 18.428,
+        lon: 77.465,
+        name: 'Séítah Unit',
+        type: 'Basaltic Bedrock',
+        desc: 'Olivine-rich cumulate bedrock with ripples and sand sheets.',
+      },
+      {
+        lat: 18.515,
+        lon: 77.50,
+        name: 'Crater Rim',
+        type: 'Topographic Boundary',
+        desc: 'Elevated Noachian impact rim exposing ancient Mars crust.',
+      },
+      {
+        lat: 18.449,
+        lon: 77.325,
+        name: 'Delta Fan',
+        type: 'Sedimentary Margin',
+        desc: 'Hawksbill Gap layered delta sequence with organic preservation potential.',
+      },
+    ];
+
+    places.forEach(({ lat, lon, name, type, desc }) => {
+      const pos = marsToLeaflet(lat, lon);
+      const icon = L!.divIcon({
+        className: 'landmark-icon',
+        html: `
+          <div style="
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(241, 245, 249, 0.9);
+            border: 1px solid rgba(15, 23, 42, 0.85);
+            box-shadow: 0 0 3px rgba(0,0,0,0.7);
+            cursor: pointer;
+          "></div>
+        `,
+        iconSize: [7, 7],
+        iconAnchor: [3.5, 3.5],
+      });
+
+      const marker = L!.marker(pos, { icon, interactive: true, zIndexOffset: 650 })
+        .bindTooltip(
+          `<div style="font-family:Inter,-apple-system,sans-serif;min-width:130px;max-width:210px;padding:2px 0;">
+             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+               <span style="font-weight:600;font-size:11px;color:#f8fafc;">${name}</span>
+               <span style="font-size:9px;color:#38bdf8;background:rgba(56,189,248,0.15);padding:1px 4px;border-radius:2px;">${type}</span>
+             </div>
+             <div style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.35;">${desc}</div>
+           </div>`,
+          {
+            permanent: false,
+            direction: 'top',
+            offset: [0, -6],
+            opacity: 0.98,
+          }
+        )
+        .addTo(mapRef.current);
+
+      landmarksRef.current.push(marker);
+    });
+  }, []);
+
   // Dynamic scale bar.
   //
   // The scale must come from the map's actual zoom. Measuring the projected
@@ -361,52 +554,229 @@ export default function MarsMap({
   const scaleUnit = scaleKm != null && scaleKm < 1 ? 'm' : 'km';
   const scaleTotal = scaleKm != null ? (scaleUnit === 'm' ? scaleKm * 1000 : scaleKm) : null;
 
+  /** Retry: remove and re-add the errored base layer tile source. */
+  const retryBasemap = useCallback(() => {
+    if (!tileErrorLayer || !mapRef.current || !L) return;
+    const existing = layersRef.current[tileErrorLayer];
+    if (existing) {
+      existing.remove();
+      delete layersRef.current[tileErrorLayer];
+      // Reset tracking — the activeLayers effect will re-add on next render
+      delete tileInflightRef.current[tileErrorLayer];
+      delete tileLoadedRef.current[tileErrorLayer];
+      delete tileErroredRef.current[tileErrorLayer];
+    }
+    setTileState('loading');
+    // Force re-run of the layer effect by toggling internal counter — we
+    // can't call onChange here, so instead we delete the cached layer so the
+    // existing activeLayers prop causes a fresh tileLayer on next render.
+    // The layer will be re-created automatically on the next activeLayers effect run.
+    const activeBase = activeLayers.find(
+      (l) => l.id === tileErrorLayer && l.visible,
+    );
+    if (activeBase && L) {
+      const tileLayer = L.tileLayer(getTileUrlTemplate(tileErrorLayer), {
+        tileSize: 256,
+        minZoom: 2,
+        maxZoom: 5,
+        noWrap: true,
+        bounds: LEAFLET_BOUNDS,
+        opacity: activeBase.opacity,
+      });
+      tileInflightRef.current[tileErrorLayer] = 0;
+      tileLoadedRef.current[tileErrorLayer] = 0;
+      tileErroredRef.current[tileErrorLayer] = 0;
+      tileLayer.on('tileloadstart', () => { setTileState('loading'); });
+      tileLayer.on('tileload', () => { setTileState('ready'); setTileErrorLayer(null); });
+      tileLayer.on('tileerror', () => {
+        if ((tileLoadedRef.current[tileErrorLayer] ?? 0) === 0) {
+          setTileState('error');
+        }
+      });
+      tileLayer.addTo(mapRef.current);
+      layersRef.current[tileErrorLayer] = tileLayer;
+    }
+  }, [tileErrorLayer, activeLayers]);
+
   return (
-    <div className="relative w-full h-full">
-      <div ref={containerRef} className="w-full h-full" />
-      {/* Dynamic graduated scale bar — hidden until measured from the live map */}
+    <div
+      className="relative w-full h-full overflow-hidden"
+      style={{ background: '#090d16' }}
+    >
+      <div
+        ref={containerRef}
+        className="w-full h-full"
+        style={{ cursor: pinMode ? 'crosshair' : 'grab', background: 'transparent' }}
+      />
+
+      {/* Map view reset / Recenter button */}
+      <div className="absolute top-[82px] right-[10px] z-[1050]">
+        <button
+          onClick={() => {
+            if (mapRef.current) {
+              mapRef.current.setView([TILE_EXTENT / 2, TILE_EXTENT / 2], 2, { animate: true });
+            }
+          }}
+          className="flex items-center justify-center w-[30px] h-[30px] rounded shadow-md transition-all active:scale-95 hover:brightness-110"
+          style={{
+            background: 'rgba(15, 23, 42, 0.92)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            color: 'var(--text-primary)',
+            backdropFilter: 'blur(8px)',
+          }}
+          title="Fit Jezero Crater overview"
+          aria-label="Fit Jezero Crater overview"
+        >
+          <Crosshair size={15} />
+        </button>
+      </div>
+
+      {/* Global Mars Explorer launcher button */}
+      {onOpenGlobalExplorer && (
+        <div className="absolute top-[118px] right-[10px] z-[1050]">
+          <button
+            onClick={onOpenGlobalExplorer}
+            className="flex items-center justify-center w-[30px] h-[30px] rounded shadow-md transition-all active:scale-95 hover:brightness-110"
+            style={{
+              background: 'rgba(15, 23, 42, 0.92)',
+              border: '1px solid var(--accent)',
+              color: 'var(--accent)',
+              backdropFilter: 'blur(8px)',
+            }}
+            title="Open Global Mars Explorer (Real NASA 360° Planetary Map)"
+            aria-label="Open Global Mars Explorer"
+          >
+            <Globe size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Compact tile render state indicator — only shown when actionable */}
+      {(tileState === 'loading' || tileState === 'error' || tileState === 'no-base-layer') && (
+        <div
+          className="absolute top-10 left-1/2 z-[1060] flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium"
+          style={{
+            transform: 'translateX(-50%)',
+            background: tileState === 'error' ? 'var(--color-danger-bg)' : 'rgba(15, 23, 42, 0.92)',
+            border: `1px solid ${
+              tileState === 'error'
+                ? 'var(--color-danger-border)'
+                : tileState === 'no-base-layer'
+                ? 'var(--color-warning-border, var(--border))'
+                : 'var(--border)'
+            }`,
+            color: tileState === 'error' ? 'var(--color-danger)' : 'var(--text-primary)',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: tileState === 'error' ? 'auto' : 'none',
+            maxWidth: '90%',
+            whiteSpace: 'nowrap',
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          {tileState === 'loading' && (
+            <>
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full animate-pulse"
+                style={{ background: 'var(--accent)' }}
+              />
+              Loading imagery…
+            </>
+          )}
+          {tileState === 'error' && (
+            <>
+              <span style={{ color: 'var(--color-danger)' }}>⚠</span>
+              Imagery unavailable
+              {tileErrorLayer && (
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                  {' '}({tileErrorLayer})
+                </span>
+              )}
+              <button
+                onClick={retryBasemap}
+                className="ml-2 underline text-[11px]"
+                style={{ color: 'var(--accent)', cursor: 'pointer', background: 'none', border: 'none' }}
+                aria-label="Retry loading map imagery"
+              >
+                Retry
+              </button>
+            </>
+          )}
+          {tileState === 'no-base-layer' && (
+            <>No basemap selected — toggle a base layer in the Layers panel</>
+          )}
+        </div>
+      )}
+
+      {/* North arrow — fixed position, bottom-right of map */}
+      <div
+        className="absolute bottom-3 right-3 z-[1050] flex flex-col items-center"
+        style={{ pointerEvents: 'none' }}
+      >
+        <div
+          className="flex flex-col items-center rounded px-1.5 py-1"
+          style={{
+            background: 'rgba(15, 23, 42, 0.92)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+          }}
+        >
+          <svg width="18" height="24" viewBox="0 0 18 24" fill="none">
+            {/* North (filled) */}
+            <polygon points="9,2 14,13 9,11 4,13" fill="var(--accent)" />
+            {/* South (outline only) */}
+            <polygon points="9,22 14,11 9,13 4,11" fill="var(--surface-raised)" stroke="var(--border)" strokeWidth="0.5" />
+          </svg>
+          <span
+            className="text-[9px] font-bold mt-0.5"
+            style={{ color: 'var(--accent)', letterSpacing: '0.1em' }}
+          >
+            N
+          </span>
+        </div>
+      </div>
+
+      {/* Dynamic graduated scale bar */}
       {scaleTotal != null && (
         <div
-          className="absolute bottom-4 left-4 flex flex-col items-start z-10"
-          style={{ pointerEvents: 'none' }}
+          className="absolute bottom-3 left-3 flex flex-col items-start z-[1050] px-2.5 py-1.5 rounded-lg font-mono select-none"
+          style={{
+            pointerEvents: 'none',
+            background: 'rgba(15, 23, 42, 0.94)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.7)',
+          }}
         >
           <div
-            className="flex items-end justify-between text-[10px] font-mono mb-0.5"
-            style={{ width: scaleWidthPx, color: 'var(--text-primary)' }}
+            className="flex items-end justify-between mb-1"
+            style={{ width: scaleWidthPx, minWidth: 60 }}
           >
-            <span>0</span>
-            <span>{formatScaleNumber(scaleTotal / 2)}</span>
-            <span>{formatScaleNumber(scaleTotal)} {scaleUnit}</span>
+            <span className="text-[10px] font-mono text-slate-300">0</span>
+            <span className="text-[10px] font-mono text-slate-300">{formatScaleNumber(scaleTotal / 2)}</span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">{formatScaleNumber(scaleTotal)} {scaleUnit}</span>
           </div>
+          {/* Graduated bar: two filled cyan + two empty segments */}
           <div
             style={{
               width: scaleWidthPx,
               height: 6,
               display: 'flex',
-              border: '1.5px solid var(--text-primary)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
               borderRadius: 2,
               overflow: 'hidden',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
             }}
           >
-            <div style={{ flex: 1, background: 'var(--text-primary)' }} />
+            <div style={{ flex: 1, background: '#38BDF8' }} />
             <div style={{ flex: 1, background: 'transparent' }} />
-            <div style={{ flex: 1, background: 'var(--text-primary)' }} />
+            <div style={{ flex: 1, background: '#38BDF8' }} />
             <div style={{ flex: 1, background: 'transparent' }} />
           </div>
         </div>
       )}
-      {/* Coordinate system label */}
-      <div
-        className="absolute top-2 left-2 text-[10px] px-2 py-1 rounded font-mono z-10"
-        style={{
-          background: 'var(--surface-overlay)',
-          color: 'var(--text-muted)',
-          border: '1px solid var(--border)',
-          pointerEvents: 'none',
-        }}
-      >
-        IAU2000 planetocentric · E-positive
-      </div>
+
     </div>
   );
 }

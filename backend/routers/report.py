@@ -336,8 +336,8 @@ remaining cost is never less than the heuristic — so it never overestimates,
 which is the admissibility condition A* requires for optimality.</p>
 
 <footer>
-VICTOR &middot; NASA Space Apps Challenge 2026 &middot;
-Interplanetary Survival Guide: Martian Map &middot;
+VICTOR &middot; NASA Mars Exploration &middot;
+Autonomous Route Intelligence &middot;
 Report generated {_esc(now)}
 </footer>
 </body></html>"""

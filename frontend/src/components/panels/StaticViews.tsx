@@ -8,8 +8,21 @@
 import React, { useEffect, useState } from 'react';
 import type { DataMode, EnvironmentResponse, HealthResponse } from '@/types';
 import { getEnvironment } from '@/services/api';
-import { BookOpen, Database, Cpu, Thermometer, Map, Layers, Info, AlertTriangle } from 'lucide-react';
+import { BookOpen, Database, Cpu, Thermometer, Layers, Info, AlertTriangle } from 'lucide-react';
 import { withAlpha } from '@/utils/color';
+import dynamic from 'next/dynamic';
+
+const GlobalMarsMap = dynamic(() => import('@/components/map/GlobalMarsMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center" style={{ background: '#050508' }}>
+      <div className="text-center">
+        <div className="skeleton w-16 h-16 rounded-full mx-auto mb-3" />
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading NASA Planetary Mars Map…</p>
+      </div>
+    </div>
+  ),
+});
 
 // ── Shared ───────────────────────────────────────────────────────────────
 
@@ -125,18 +138,17 @@ export function MethodologyView() {
 
 export function AboutView() {
   return (
-    <ViewShell icon={<BookOpen size={18} />} eyebrow="NASA Space Apps Challenge 2026" title="About VICTOR">
+    <ViewShell icon={<BookOpen size={18} />} eyebrow="NASA Mars Exploration Program" title="About VICTOR">
       <InfoBox title="VICTOR">
         <p>
           <strong>VICTOR</strong> stands for <strong>Voyage Intelligence for Terrain-aware
           Cartographic Optimization &amp; Routing</strong>.
         </p>
       </InfoBox>
-      <InfoBox title="Challenge">
+      <InfoBox title="Mission Directorate">
         <p>
-          This project is an entry for the <strong>NASA Space Apps Challenge 2026</strong>,
-          challenge category: <em>Interplanetary Survival Guide: Martian Map</em>.
-          Hackathon: 14–15 November 2026.
+          Developed for the <strong>NASA Mars Exploration Program</strong> and autonomous EVA routing
+          operations in Jezero Crater, Mars.
         </p>
       </InfoBox>
       <InfoBox title="What VICTOR does">
@@ -535,39 +547,9 @@ export function EnvironmentalView() {
 
 export function MarsExplorerView({ onNavigate }: { onNavigate: (s: string) => void }) {
   return (
-    <ViewShell icon={<Map size={18} />} eyebrow="Exploration" title="Mars Explorer">
-      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-        The interactive map is the primary exploration interface. Use it to explore Jezero Crater
-        terrain, place start/destination markers, and visualise route options.
-      </p>
-      <button
-        onClick={() => onNavigate('plan')}
-        className="px-5 py-2.5 rounded-lg font-semibold text-sm mb-6"
-        style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-      >
-        Open Mission Planner with Map →
-      </button>
-      <InfoBox title="Available Layers">
-        <ul className="list-disc list-inside space-y-1">
-          <li>Base Imagery (CTX, MRO) — real orbital imagery, ~5 m/px</li>
-          <li>Shaded Relief — colourmapped MOLA elevation (derived, not imagery)</li>
-          <li>Elevation (MOLA) — colour-graded altitude</li>
-          <li>Thermal Inertia Proxy (THEMIS) — night-IR surface material proxy</li>
-          <li>Hazard Zones — model-derived risk overlay, 0–10</li>
-          <li>Science Priority (MODEL) — published target value zones</li>
-          <li>Perseverance Traverse — historical rover path reference</li>
-        </ul>
-        <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          The layer panel reports which of these the backend can currently render;
-          the rest appear disabled with the reason.
-        </p>
-      </InfoBox>
-      <InfoBox title="Coordinate System">
-        <p>IAU2000 planetocentric coordinates, east-positive longitude. All coordinates displayed
-        as decimal degrees, WGS-84 analogue for Leaflet rendering via a linear projection
-        within the bounded study region.</p>
-      </InfoBox>
-    </ViewShell>
+    <div className="flex-1 w-full h-full flex flex-col overflow-hidden">
+      <GlobalMarsMap onSelectJezero={() => onNavigate('plan')} />
+    </div>
   );
 }
 

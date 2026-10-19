@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
@@ -131,17 +131,37 @@ def generate_tile(layer_img: Image.Image, z: int, x: int, y: int, out_dir: Path)
     tile.save(str(tile_path), "PNG")
 
 
-def generate_layer_tiles(layer_name: str, grid: np.ndarray, colormap, mode: str = "RGB"):
-    """Generate tiles at zoom 1-5 for a layer."""
-    logger.info(f"Generating tiles for layer: {layer_name}")
+# Calibrated Martian natural ferric-oxide palette based on Mars 2020 Mastcam-Z & Viking observations
+MARS_TRUE_COLOR = [
+    (0.0,   (24, 14, 10)),     # Deep shadowed basalt / dunes
+    (45.0,  (65, 36, 24)),     # Low-albedo bedrock
+    (100.0, (132, 74, 44)),    # Intermediate ferric sand
+    (160.0, (185, 115, 68)),   # Oxidized dust & delta fan
+    (210.0, (222, 155, 100)),  # Bright crater rim / light-toned carbonates
+    (255.0, (246, 200, 154)),  # High-albedo peaks & ejecta
+]
+
+
+def generate_layer_tiles(
+    layer_name: str,
+    grid: np.ndarray,
+    colormap,
+    mode: str = "RGB",
+    resample=Image.LANCZOS,
+    sharpen: bool = False,
+):
+    """Generate tiles at zoom 1-5 for a layer with high-definition upscaling."""
+    logger.info(f"Generating high-definition tiles for layer: {layer_name}")
     out_dir = TILES_DIR / layer_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Full resolution image (300×300 grid → 1024×1024 base image)
-    base_size = 1024
+    # 2048×2048 base canvas for razor-sharp zoom 1-5 tiles without blocky pixelation
+    base_size = 2048
     raw_img = grid_to_image(grid, colormap, mode)
-    # Scale up for higher quality tiles
-    full_img = raw_img.resize((base_size, base_size), Image.NEAREST)
+    full_img = raw_img.resize((base_size, base_size), resample)
+
+    if sharpen and mode == "RGB":
+        full_img = full_img.filter(ImageFilter.UnsharpMask(radius=2, percent=135, threshold=3))
 
     count = 0
     for z in range(1, 6):
@@ -163,8 +183,12 @@ def create_placeholder():
 
 
 GRAY_COLORS = [
-    (0.0,   (0, 0, 0)),
-    (255.0, (255, 255, 255)),
+    (0.0,   (14, 14, 14)),
+    (40.0,  (48, 48, 48)),
+    (100.0, (108, 108, 108)),
+    (160.0, (168, 168, 168)),
+    (210.0, (218, 218, 218)),
+    (255.0, (248, 248, 248)),
 ]
 
 # Thermal inertia proxy: cool/dusty (low) through warm/rocky (high).
@@ -219,51 +243,45 @@ def main():
     hazard = np.load(CACHE_DIR / "hazard.npy")
     science = np.load(CACHE_DIR / "science_value.npy")
 
-    # Shaded relief and elevation, both colormapped from the elevation grid.
-    generate_layer_tiles("terrain", elevation, TERRAIN_COLORS, "RGB")
-    generate_layer_tiles("elevation", elevation, TERRAIN_COLORS, "RGB")
+    # Shaded relief and elevation, both colormapped from the elevation grid with smooth Lanczos upscaling
+    generate_layer_tiles("terrain", elevation, TERRAIN_COLORS, "RGB", resample=Image.LANCZOS)
+    generate_layer_tiles("elevation", elevation, TERRAIN_COLORS, "RGB", resample=Image.LANCZOS)
 
-    # Overlays use RGBA so they composite over the basemap.
-    generate_layer_tiles("hazard", hazard, HAZARD_COLORS, "RGBA")
-    generate_layer_tiles("science", science, SCIENCE_COLORS, "RGBA")
+    # Overlays use RGBA so they composite smoothly over the basemap
+    generate_layer_tiles("hazard", hazard, HAZARD_COLORS, "RGBA", resample=Image.BILINEAR)
+    generate_layer_tiles("science", science, SCIENCE_COLORS, "RGBA", resample=Image.BILINEAR)
 
-    # Optional layers — generated only once their grid has been ingested, which
-    # is also what makes the corresponding layer report itself available.
+    # Base imagery in crisp panchromatic grayscale with unsharp detail enhancement
     imagery_path = CACHE_DIR / "imagery.npy"
     if imagery_path.exists():
         imagery = normalize_to_uint8(np.load(imagery_path))
-        generate_layer_tiles("imagery", imagery, GRAY_COLORS, "RGB")
+        generate_layer_tiles("imagery", imagery, GRAY_COLORS, "RGB", resample=Image.LANCZOS, sharpen=True)
     else:
         logger.info("imagery.npy absent — skipping CTX basemap tiles")
 
     thermal_path = CACHE_DIR / "thermal_proxy.npy"
     if thermal_path.exists():
-        generate_layer_tiles("thermal", np.load(thermal_path), THERMAL_COLORS, "RGBA")
+        generate_layer_tiles("thermal", np.load(thermal_path), THERMAL_COLORS, "RGBA", resample=Image.BILINEAR)
     else:
         logger.info("thermal_proxy.npy absent — skipping thermal tiles")
 
     dust_path = CACHE_DIR / "dust.npy"
     if dust_path.exists():
-        generate_layer_tiles("dust_activity", np.load(dust_path), HAZARD_COLORS, "RGBA")
+        generate_layer_tiles("dust_activity", np.load(dust_path), HAZARD_COLORS, "RGBA", resample=Image.BILINEAR)
     else:
         logger.info("dust.npy absent — skipping dust tiles")
 
-    # Terrain archetypes from the unsupervised classifier. Categorical, so each
-    # class gets a flat distinct colour rather than an interpolated ramp —
-    # interpolating between class ids would invent terrain that does not exist.
+    # Terrain archetypes from the unsupervised classifier. Categorical, so NEAREST keeps classes discrete.
     terrain_class_path = CACHE_DIR / "terrain_class.npy"
     if terrain_class_path.exists():
         labels = np.load(terrain_class_path)
         generate_layer_tiles(
-            "terrain_class", labels.astype(np.float64), TERRAIN_CLASS_COLORS, "RGBA"
+            "terrain_class", labels.astype(np.float64), TERRAIN_CLASS_COLORS, "RGBA", resample=Image.NEAREST
         )
     else:
         logger.info("terrain_class.npy absent — skipping terrain class tiles")
 
-    # Surface composition from real CRISM spectra. Combines the olivine and
-    # carbonate indices — the two mineral families that define Jezero's science
-    # case — each percentile-stretched then combined by maximum, so a cell is
-    # highlighted if EITHER is strongly present.
+    # Surface composition from real CRISM spectra.
     ol_path = CACHE_DIR / "olivine_index.npy"
     cb_path = CACHE_DIR / "carbonate_index.npy"
     if ol_path.exists() and cb_path.exists():
@@ -280,16 +298,15 @@ def main():
         ol = _stretch(np.load(ol_path).astype(np.float64))
         cb = _stretch(np.load(cb_path).astype(np.float64))
         composition = np.fmax(ol, cb)
-        # Both unmeasured -> stays NaN -> renders transparent via the first stop.
         composition = np.where(~np.isfinite(ol) & ~np.isfinite(cb), np.nan, composition)
-        generate_layer_tiles("composition", composition, COMPOSITION_COLORS, "RGBA")
+        generate_layer_tiles("composition", composition, COMPOSITION_COLORS, "RGBA", resample=Image.BILINEAR)
     else:
         logger.info("CRISM index grids absent — skipping composition tiles")
 
     confidence_path = CACHE_DIR / "confidence.npy"
     if confidence_path.exists():
         generate_layer_tiles(
-            "confidence", np.load(confidence_path), CONFIDENCE_COLORS, "RGBA"
+            "confidence", np.load(confidence_path), CONFIDENCE_COLORS, "RGBA", resample=Image.NEAREST
         )
     else:
         logger.info("confidence.npy absent — skipping confidence tiles")

@@ -4,12 +4,31 @@
  * Explicit affine transformation mapping Mars planetocentric lat/lon
  * to Leaflet pixel coordinates and back.
  *
+ * ## Coordinate convention
+ *
+ * The tile generator (scripts/generate_tiles.py) creates a standard Leaflet
+ * tile pyramid:
+ *   - Zoom 0: one 256×256 tile covering the whole world → world = 256 units
+ *   - Zoom z: 2^z × 2^z tiles, each still 256px → world = 256 * 2^z pixels
+ *
+ * Example valid tile coords:
+ *   z=1: x ∈ {0,1},   y ∈ {0,1}
+ *   z=2: x ∈ {0..3},  y ∈ {0..3}
+ *   z=3: x ∈ {0..7},  y ∈ {0..7}
+ *
+ * TILE_EXTENT is the zoom-0 world size (256 units). All affine mappings use
+ * this constant. Leaflet scales internally when zooming.
+ *
+ * Leaflet CRS.Simple axis orientation:
+ *   - x (lng) increases rightward → matches our longitude
+ *   - y (lat) increases upward   → INVERTED from image pixel y (which increases
+ *     downward). We account for this in marsToLeaflet / leafletToMars.
+ *
  * Grid extent: 18.0–18.9°N, 77.0–78.0°E (non-square cells)
- * Tile extent: 0–TILE_EXTENT pixels at zoom base
  *
  * All conversions use the same affine mapping:
- *   x_pixel = (lon - lon_min) / (lon_max - lon_min) * tile_extent
- *   y_pixel = (lat_max - lat) / (lat_max - lat_min) * tile_extent
+ *   x_pixel = (lon - lon_min) / (lon_max - lon_min) * TILE_EXTENT
+ *   y_pixel = (lat_max - lat) / (lat_max - lat_min) * TILE_EXTENT
  *
  * Scale bar uses haversine at display center.
  */
@@ -24,8 +43,19 @@ export const EXTENT = {
   lon_max: 78.0,
 };
 
-// Tile coordinate space size (Leaflet units at zoom 0)
-export const TILE_EXTENT = 256 * 4; // 1024px base
+/**
+ * Leaflet zoom-0 world size in CRS.Simple units.
+ *
+ * MUST equal the tile size (256px) — this is what Leaflet expects as its
+ * coordinate space at zoom 0. The generator makes 2^z tiles per side at each
+ * zoom level z, matching this 256-unit world exactly.
+ *
+ * Previous value was 256*4 = 1024, which is the pixel dimensions of the z=2
+ * tile grid image (4 tiles × 256px), NOT the zoom-0 world size. That caused
+ * Leaflet at zoom 2 to request tiles at x/y ≈ 8 rather than ≈ 1, making every
+ * tile request fall outside the 0..3 range that the generator produces.
+ */
+export const TILE_EXTENT = 256;
 
 export interface PixelPoint {
   x: number;

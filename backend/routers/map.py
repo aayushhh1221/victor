@@ -60,16 +60,30 @@ async def get_region_info(data_service=Depends(get_data_service)):
 
 @router.get("/tiles/{layer}/{z}/{x}/{y}.png")
 async def get_tile(layer: str, z: int, x: int, y: int):
-    """Serve map tiles (PNG) for the given layer."""
-    tile_path = TILES_BASE / layer / str(z) / str(x) / f"{y}.png"
+    """Serve map tiles (PNG) for the given layer.
+
+    Missing tiles return 404 — never a placeholder image with HTTP 200.
+    Returning the brown placeholder as 200 hides coordinate-contract errors:
+    Leaflet sees a successful tile load and the map renders as a flat colour
+    with no diagnosable error. A genuine 404 lets Leaflet's tileerror event
+    fire so the frontend can surface an honest loading/error state.
+
+    If a legitimate no-data raster is ever needed (e.g. transparent coverage
+    boundary), it must be introduced as a source-labelled, transparent overlay
+    with explicit metadata — not as a basemap fallback.
+    """
+    actual_y = (2 ** z) + y if y < 0 else y
+    tile_path = TILES_BASE / layer / str(z) / str(x) / f"{actual_y}.png"
     if not tile_path.exists():
-        # Return a 1×1 transparent PNG as placeholder
-        placeholder = TILES_BASE / "placeholder.png"
-        if placeholder.exists():
-            return FileResponse(str(placeholder), media_type="image/png")
-        raise HTTPException(status_code=404, detail=f"Tile not found: {layer}/{z}/{x}/{y}")
-    return FileResponse(str(tile_path), media_type="image/png",
-                        headers={"Cache-Control": "max-age=3600"})
+        raise HTTPException(
+            status_code=404,
+            detail=f"Tile not found: {layer}/{z}/{x}/{y}",
+        )
+    return FileResponse(
+        str(tile_path),
+        media_type="image/png",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
 
 
 def _tiles_exist(layer_id: str) -> bool:

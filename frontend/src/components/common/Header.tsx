@@ -4,6 +4,7 @@ import React from 'react';
 import type { DataMode } from '@/types';
 import { useTheme } from '@/utils/theme';
 import { HelpCircle, Moon, Sun } from 'lucide-react';
+import NasaLogo from '@/components/common/NasaLogo';
 
 /** Full product name, used wherever the long form belongs. */
 export const PRODUCT_NAME_LONG =
@@ -69,7 +70,7 @@ export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-4 border-b flex-shrink-0 z-30"
+      className="h-14 flex items-center justify-between px-4 border-b flex-shrink-0 z-30 relative"
       style={{
         background: 'var(--header-bg)',
         borderColor: 'var(--header-border)',
@@ -77,20 +78,15 @@ export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps
     >
       {/* Logo group */}
       <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
-        {/* NASA-style meatball */}
+        {/* Official NASA meatball */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="NASA">
-            <circle cx="18" cy="18" r="17" fill="var(--accent)" />
-            <ellipse cx="18" cy="18" rx="12" ry="7" stroke="var(--on-accent)" strokeWidth="2" fill="none" />
-            <path d="M8 18 Q13 10 18 18 Q23 26 28 18" stroke="var(--color-danger)" strokeWidth="2.5" fill="none" />
-            <text x="18" y="22" textAnchor="middle" fill="var(--on-accent)" fontSize="8" fontWeight="700" fontFamily="sans-serif">NASA</text>
-          </svg>
+          <NasaLogo width={38} height={32} />
           <div className="flex flex-col leading-tight" title={PRODUCT_NAME_LONG}>
             <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
               VICTOR
             </span>
-            <span className="text-[9px] font-medium tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
-              Space Apps Challenge 2026
+            <span className="text-[9px] font-medium tracking-wider uppercase" style={{ color: 'var(--text-muted)' }}>
+              NASA Mars Exploration
             </span>
           </div>
         </div>

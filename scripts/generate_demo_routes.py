@@ -31,10 +31,9 @@ sys.path.insert(0, str(ROOT))
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger("victor.demo_routes")
 
-# Floor-to-northern-rim: crosses the crater floor, the delta margin and rising
-# rim terrain, so slope and thermal character both vary substantially.
-DEFAULT_START = (18.05, 77.05)
-DEFAULT_DEST = (18.85, 77.95)
+# Séítah to Ancient Delta (Mars 2020 Perseverance Traverse reference)
+DEFAULT_START = (18.44, 77.45)
+DEFAULT_DEST = (18.48, 77.24)
 
 OUT_PATH = ROOT / "backend" / "data" / "demo" / "precomputed_routes.json"
 

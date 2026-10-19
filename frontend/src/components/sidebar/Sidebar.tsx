@@ -2,7 +2,7 @@
 
 import React from 'react';
 import {
-  Activity, Route, Map, BarChart3, FlaskConical,
+  Activity, Route, Globe, BarChart3, FlaskConical,
   Thermometer, GitCompare, FileText, Database, BookOpen,
   Cpu, LucideIcon
 } from 'lucide-react';
@@ -15,7 +15,7 @@ interface SidebarProps {
 const SECTIONS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: 'overview',    icon: Activity,     label: 'Mission Overview' },
   { id: 'plan',        icon: Route,        label: 'Plan Marswalk' },
-  { id: 'map',         icon: Map,          label: 'Interactive Map' },
+  { id: 'map',         icon: Globe,        label: 'Global Mars Explorer' },
   { id: 'analysis',    icon: BarChart3,    label: 'Route Analysis' },
   { id: 'science',     icon: FlaskConical, label: 'Science Opportunities' },
   { id: 'env',         icon: Thermometer,  label: 'Environmental' },

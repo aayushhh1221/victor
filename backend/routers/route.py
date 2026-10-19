@@ -47,6 +47,12 @@ async def compute_routes(
     """
     strategy_names = [s.value for s in req.strategies]
 
+    if abs(req.start.lat - req.destination.lat) < 1e-4 and abs(req.start.lon - req.destination.lon) < 1e-4:
+        raise HTTPException(
+            status_code=400,
+            detail="Start and destination coordinates must be distinct (at least 50m apart)."
+        )
+
     cache_key = route_cache_key(
         req.start.lat, req.start.lon,
         req.destination.lat, req.destination.lon,

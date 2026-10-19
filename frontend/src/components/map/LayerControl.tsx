@@ -50,6 +50,7 @@ const CLASSIFICATION_COLOR: Record<string, string> = {
 const BASEMAP_PREFERENCE = ['imagery', 'terrain'];
 
 export default function LayerControl({ layers, onChange }: LayerControlProps) {
+  // null = pending, [] = empty response, MapLayer[] = loaded
   const [apiLayers, setApiLayers] = useState<MapLayer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seededRef = useRef(false);
@@ -62,12 +63,16 @@ export default function LayerControl({ layers, onChange }: LayerControlProps) {
         setApiLayers(data.layers ?? []);
         setError(null);
       })
-      .catch((e: unknown) => {
+      .catch((err) => {
         if (cancelled) return;
-        // Deliberately no fallback list: a layer panel with live controls over
-        // layers we cannot confirm exist would be misleading.
+        // Do NOT substitute a hardcoded layer list. The user must know the
+        // backend is unreachable rather than operating controls that do nothing.
         setApiLayers(null);
-        setError(e instanceof Error ? e.message : 'Layer list request failed');
+        setError(
+          err?.message
+            ? `Could not reach the backend: ${err.message}`
+            : 'Could not reach the backend. Layer availability is unknown.',
+        );
       });
     return () => {
       cancelled = true;

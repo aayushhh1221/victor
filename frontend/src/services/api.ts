@@ -124,7 +124,7 @@ export function getTileUrl(layer: string, z: number, x: number, y: number): stri
  * breaks the moment the URL shape changes.
  */
 export function getTileUrlTemplate(layer: string): string {
-  return `${TILE_BASE}/${layer}/{z}/{x}/{y}.png`;
+  return `${TILE_BASE}/${layer}/{z}/{x}/{y}.png?v=4`;
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
