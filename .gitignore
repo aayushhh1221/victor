@@ -23,6 +23,7 @@ venv/
 # deployment target has an ephemeral filesystem so nothing can be generated there.
 backend/data/raw/
 backend/data/cache/*.npy.gz
+backend/data/cache/computations/
 
 # Node
 node_modules/
