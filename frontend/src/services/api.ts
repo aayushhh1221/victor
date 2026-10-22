@@ -17,6 +17,7 @@ import type {
   TerrainClassesResponse,
   BriefingResponse,
   EnvironmentResponse,
+  ReportStrategy,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -204,7 +205,7 @@ export async function getEnvironment(): Promise<EnvironmentResponse> {
 /** Narrative Markdown briefing for one strategy of a stored computation. */
 export async function getBriefing(
   computationId: string,
-  strategy: string,
+  strategy: ReportStrategy | string,
 ): Promise<BriefingResponse> {
   return fetchJson<BriefingResponse>(
     `/api/v1/report/briefing/${encodeURIComponent(computationId)}`
@@ -221,7 +222,7 @@ export async function getBriefing(
  */
 export function getReportUrl(
   computationId: string,
-  strategy: string,
+  strategy: ReportStrategy | string,
   download = false,
 ): string {
   const params = new URLSearchParams({
@@ -229,6 +230,20 @@ export function getReportUrl(
     download: download ? 'true' : 'false',
   });
   return `${API_BASE}/api/v1/report/${encodeURIComponent(computationId)}?${params}`;
+}
+
+/**
+ * URL of the official NASA Technical Memorandum PDF report.
+ *
+ * This endpoint returns a publication-grade PDF conforming to NASA Technical
+ * Report formatting standards with full multi-mission provenance and vector layouts.
+ */
+export function getPdfReportUrl(
+  computationId: string,
+  strategy: ReportStrategy | string,
+): string {
+  const params = new URLSearchParams({ strategy });
+  return `${API_BASE}/api/v1/report/pdf/${encodeURIComponent(computationId)}?${params}`;
 }
 
 export { ApiError };

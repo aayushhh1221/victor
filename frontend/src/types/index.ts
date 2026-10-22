@@ -5,6 +5,7 @@
 
 export type DataMode = 'LIVE' | 'VERIFIED_SNAPSHOT' | 'DEMONSTRATION';
 export type RouteStrategy = 'SAFEST' | 'FASTEST' | 'SCIENCE_RICHEST' | 'BALANCED';
+export type ReportStrategy = RouteStrategy | 'ALL';
 export type ConfidenceLevel = 'HIGH' | 'MODERATE' | 'LOW';
 export type ParetoStatus = 'NON_DOMINATED' | 'DOMINATED';
 export type MineralClass =
@@ -36,6 +37,7 @@ export interface MissionConstraints {
   max_slope_deg: number;
   max_eva_hours: number;
   walking_speed_kmh: number;
+  science_detour_radius_m?: number;
 }
 
 export interface EdgeCostBreakdown {
@@ -73,6 +75,11 @@ export interface RouteMetrics {
   elevation_loss_m: number;
   impassable_cells_avoided: number;
   confidence: ConfidenceLevel;
+  effective_eva_budget_hours?: number;
+  required_eva_time_with_reserve_hours?: number;
+  eva_reserve_hours?: number;
+  eva_margin_hours?: number;
+  is_feasible?: boolean;
 }
 
 export interface ScienceTarget {
@@ -96,6 +103,9 @@ export interface Route {
   metrics: RouteMetrics;
   science_targets_nearby: ScienceTarget[];
   pareto_status: ParetoStatus;
+  effective_weights?: Record<string, number>;
+  is_feasible?: boolean;
+  infeasibility_reason?: string | null;
 }
 
 export interface ProvenanceRecord {
@@ -140,6 +150,8 @@ export interface RouteComputeRequest {
   destination: Coordinate;
   constraints: MissionConstraints;
   strategies: RouteStrategy[];
+  allow_infeasible?: boolean;
+  weight_overrides?: Record<string, number> | Record<string, Record<string, number>>;
 }
 
 export interface ScenarioModification {

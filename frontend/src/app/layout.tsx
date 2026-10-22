@@ -25,6 +25,15 @@ export const metadata: Metadata = {
     'Real NASA data (MOLA, CRISM, THEMIS, CTX). A* pathfinding with Pareto dominance analysis, ' +
     'per-segment evidence provenance, and scenario comparison.',
   keywords: 'Mars, NASA, route planning, Jezero Crater, A*, Pareto, MOLA, CRISM, THEMIS, CTX, EVA, marswalk, VICTOR',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 // Pre-paint inline script: sets data-theme BEFORE first paint to eliminate flash.
@@ -47,7 +56,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="white" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/* Pre-paint theme script — must run synchronously before any render */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

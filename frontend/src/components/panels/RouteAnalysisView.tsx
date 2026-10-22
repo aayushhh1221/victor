@@ -32,7 +32,7 @@ const hazardColor = (score: number) =>
 interface RouteAnalysisViewProps {
   routeResult: RouteComputeResponse | null;
   activeStrategy: RouteStrategy | null;
-  onStrategyChange: (s: RouteStrategy) => void;
+  onStrategyChange: (_s: RouteStrategy) => void;
   /** Mission constraints in force — the reference the slope meter is read against. */
   constraints: MissionConstraints;
 }

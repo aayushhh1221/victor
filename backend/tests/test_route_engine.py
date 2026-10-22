@@ -27,7 +27,7 @@ from backend.models.enums import ParetoStatus
 
 START = Coordinate(lat=18.35, lon=77.35)
 DEST = Coordinate(lat=18.55, lon=77.60)
-CONSTRAINTS = MissionConstraints(max_slope_deg=20.0, max_eva_hours=6.0, walking_speed_kmh=3.0)
+CONSTRAINTS = MissionConstraints(max_slope_deg=20.0, max_eva_hours=10.0, walking_speed_kmh=3.0)
 
 
 @pytest.fixture(scope="module")
@@ -245,13 +245,22 @@ class TestEvidenceDecomposition:
                         actual = bd.cost_without(comp)
                         assert abs(actual - expected) < 1e-9
 
+    def test_surface_material_thermal_proxy_mapping(self):
+        """Surface material classifies by thermal inertia proxy (low = dust, high = rock)."""
+        from backend.services.evidence_engine import _surface_material, MineralClass
+        mat_low, _ = _surface_material(0.1)
+        assert "Fine dust" in mat_low
+        mat_high, min_high = _surface_material(0.9)
+        assert "rock" in mat_high.lower() or "bedrock" in mat_high.lower()
+        assert min_high == MineralClass.PYROXENE
+
 
 class TestNoPathHandling:
     def test_no_path_returns_empty(self, sample_data):
         """When no path exists (extreme slope constraint), return empty dict gracefully."""
         engine = RouteEngine(sample_data)
-        # Use a near-zero slope constraint — almost no cells will be traversable
-        tight_constraints = MissionConstraints(max_slope_deg=5.0)  # Minimum allowed; very few cells passable
+        # Use a near-zero slope constraint with ample EVA budget so EVA reserve does not trigger
+        tight_constraints = MissionConstraints(max_slope_deg=5.0, max_eva_hours=12.0)
         # Should not raise, should return {} or fewer routes
         try:
             routes = engine.compute_routes(START, DEST, tight_constraints)

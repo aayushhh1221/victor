@@ -43,11 +43,11 @@ interface MarsMapProps {
   routes: Partial<Record<RouteStrategy, Route>>;
   activeLayers: ActiveLayer[];
   scienceTargets: ScienceTarget[];
-  onMapClick: (coord: Coordinate) => void;
-  onSegmentClick: (strategy: RouteStrategy, segmentId: number) => void;
+  onMapClick: (_coord: Coordinate) => void;
+  onSegmentClick: (_strategy: RouteStrategy, _segmentId: number) => void;
   activeStrategy: RouteStrategy | null;
   pinMode?: 'start' | 'destination' | null;
-  onPinDrag?: (type: 'start' | 'destination', coord: Coordinate) => void;
+  onPinDrag?: (_type: 'start' | 'destination', _coord: Coordinate) => void;
   focusCoord?: Coordinate | null;
   onOpenGlobalExplorer?: () => void;
 }
@@ -95,7 +95,6 @@ export default function MarsMap({
   const routeLayersRef = useRef<any[]>([]);
   const markersRef = useRef<any[]>([]);
   const sciLayersRef = useRef<any[]>([]);
-  const bgRectRef = useRef<any>(null);
 
   // Keep latest callbacks in refs so event listeners registered once on mount
   // never execute stale closures.
@@ -383,6 +382,14 @@ export default function MarsMap({
 
       routeLayersRef.current.push(polyline);
     });
+
+    // Auto-fit view to active route when routes are rendered
+    const activeRoute = (activeStrategy && routes[activeStrategy]) || Object.values(routes)[0];
+    if (activeRoute?.path && activeRoute.path.length > 1) {
+      const latlngs = activeRoute.path.map((c) => marsToLeaflet(c.lat, c.lon));
+      const bounds = L!.latLngBounds(latlngs);
+      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 4, animate: true });
+    }
   }, [routes, activeStrategy, onSegmentClick]);
 
   // Science target markers
@@ -613,7 +620,15 @@ export default function MarsMap({
       <div className="absolute top-[82px] right-[10px] z-[1050]">
         <button
           onClick={() => {
-            if (mapRef.current) {
+            if (!mapRef.current || !L) return;
+            const targetRoute = (activeStrategy && routes[activeStrategy]) || Object.values(routes)[0];
+            if (targetRoute?.path && targetRoute.path.length > 1) {
+              const bounds = L.latLngBounds(targetRoute.path.map((c) => marsToLeaflet(c.lat, c.lon)));
+              mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 4, animate: true });
+            } else if (start && destination) {
+              const bounds = L.latLngBounds([marsToLeaflet(start.lat, start.lon), marsToLeaflet(destination.lat, destination.lon)]);
+              mapRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 4, animate: true });
+            } else {
               mapRef.current.setView([TILE_EXTENT / 2, TILE_EXTENT / 2], 2, { animate: true });
             }
           }}
@@ -624,8 +639,8 @@ export default function MarsMap({
             color: 'var(--text-primary)',
             backdropFilter: 'blur(8px)',
           }}
-          title="Fit Jezero Crater overview"
-          aria-label="Fit Jezero Crater overview"
+          title="Fit route / Recenter map"
+          aria-label="Fit route / Recenter map"
         >
           <Crosshair size={15} />
         </button>

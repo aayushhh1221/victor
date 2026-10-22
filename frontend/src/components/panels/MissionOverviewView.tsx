@@ -10,7 +10,7 @@ interface MissionOverviewProps {
   routeResult: RouteComputeResponse | null;
   dataMode: DataMode | null;
   constraints: MissionConstraints;
-  onNavigate: (section: string) => void;
+  onNavigate: (_section: string) => void;
 }
 
 export default function MissionOverviewView({
@@ -29,7 +29,7 @@ export default function MissionOverviewView({
       style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
     >
       <div className="mb-6">
-        <p className="section-heading mb-1">Interplanetary Survival Guide</p>
+        <p className="section-heading mb-1">Autonomous Traverse Architecture</p>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
           Mission Overview
         </h1>

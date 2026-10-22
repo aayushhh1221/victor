@@ -2,6 +2,7 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
 from ..models.schemas import ScenarioCompareRequest, ScenarioCompareResponse
+from ..services.route_engine import UnsafeEndpointError, OverEvaBudgetError
 from ..services.scenario_engine import ScenarioEngine
 from ..dependencies import get_data_service, get_scenario_engine
 from .route import get_computation_store
@@ -26,25 +27,27 @@ async def compare_scenarios(
     modified_id = str(uuid.uuid4())
 
     if original_req is None:
-        from ..models.domain import MissionConstraints
-        first_route = next(iter(base_routes.values()))
-        start = first_route.path[0]
-        dest = first_route.path[-1]
-        base_constraints = MissionConstraints(max_slope_deg=20, max_eva_hours=6, walking_speed_kmh=3.0)
-    else:
-        start = original_req.start
-        dest = original_req.destination
-        base_constraints = original_req.constraints
+        raise HTTPException(
+            status_code=422,
+            detail="Base computation lacks persisted request context (legacy cache entry). Please recompute the route to enable scenario comparison."
+        )
 
-    result = scenario_engine.compare_scenarios(
-        base_routes=base_routes,
-        start=start,
-        dest=dest,
-        base_constraints=base_constraints,
-        modifications=req.modifications,
-        base_computation_id=req.base_computation_id,
-        modified_computation_id=modified_id,
-    )
+    start = original_req.start
+    dest = original_req.destination
+    base_constraints = original_req.constraints
+
+    try:
+        result = scenario_engine.compare_scenarios(
+            base_routes=base_routes,
+            start=start,
+            dest=dest,
+            base_constraints=base_constraints,
+            modifications=req.modifications,
+            base_computation_id=req.base_computation_id,
+            modified_computation_id=modified_id,
+        )
+    except (UnsafeEndpointError, OverEvaBudgetError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     # Store modified computation for further queries
     store[modified_id] = {

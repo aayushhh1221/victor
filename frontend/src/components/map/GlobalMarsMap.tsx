@@ -121,26 +121,20 @@ const MARS_LANDMARKS: MarsLandmark[] = [
   },
 ];
 
-type GlobalLayerId = 'opm' | 'mola' | 'viking';
+type GlobalLayerId = 'mola' | 'viking';
 
 const GLOBAL_BASEMAPS: Record<GlobalLayerId, { name: string; url: string; subdomains?: string[]; maxZoom: number; desc: string }> = {
-  opm: {
-    name: 'USGS / OPM Global Mars (NASA Shaded Relief)',
-    url: 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
-    maxZoom: 6,
-    desc: 'OpenPlanetary Mars basemap derived from USGS Astrogeology and NASA MGS MOLA elevation data.',
-  },
   mola: {
     name: 'NASA MGS MOLA Global Topography (Elevation)',
     url: 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg',
     maxZoom: 6,
-    desc: 'Global shaded elevation map from the Mars Orbiter Laser Altimeter on Mars Global Surveyor.',
+    desc: 'Global shaded elevation map from the Mars Orbiter Laser Altimeter on Mars Global Surveyor (NASA Solar System Treks).',
   },
   viking: {
     name: 'NASA Viking MDIM 2.1 (Global Natural Color)',
     url: 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg',
     maxZoom: 6,
-    desc: 'Calibrated color controlled global mosaic from NASA Viking Orbiter cameras (232 m/px).',
+    desc: 'Calibrated color controlled global mosaic from NASA Viking Orbiter cameras (232 m/px, NASA Solar System Treks).',
   },
 };
 
@@ -152,8 +146,9 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
-  const [activeLayer, setActiveLayer] = useState<GlobalLayerId>('opm');
+  const [activeLayer, setActiveLayer] = useState<GlobalLayerId>('mola');
   const [hoverCoord, setHoverCoord] = useState<{ lat: number; lon: number } | null>(null);
+  const [tileError, setTileError] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !L) return;
@@ -184,7 +179,11 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
       maxZoom: baseConfig.maxZoom,
       noWrap: true,
       bounds: MARS_GLOBAL_BOUNDS,
-    }).addTo(map);
+    });
+    tileLayer.on('tileerror', () => {
+      setTileError(true);
+    });
+    tileLayer.addTo(map);
     layerRef.current = tileLayer;
 
     // Fit single globe cleanly into view without horizontal duplication
@@ -299,6 +298,9 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
       noWrap: true,
       bounds: [[-85, -180], [85, 180]],
     });
+    newLayer.on('tileerror', () => {
+      setTileError(true);
+    });
     newLayer.addTo(mapRef.current);
     layerRef.current = newLayer;
   }, [activeLayer]);
@@ -334,7 +336,10 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
           {(Object.keys(GLOBAL_BASEMAPS) as GlobalLayerId[]).map((id) => (
             <button
               key={id}
-              onClick={() => setActiveLayer(id)}
+              onClick={() => {
+                setTileError(false);
+                setActiveLayer(id);
+              }}
               className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
               style={{
                 background: activeLayer === id ? 'var(--accent)' : 'var(--surface-sunken)',
@@ -342,7 +347,7 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
                 border: `1px solid ${activeLayer === id ? 'var(--accent)' : 'var(--border)'}`,
               }}
             >
-              {id === 'opm' ? 'MOLA Shaded Relief' : id === 'viking' ? 'Viking Color Globe' : 'MOLA Elevation'}
+              {id === 'viking' ? 'Viking Color Globe' : 'NASA MOLA Topography'}
             </button>
           ))}
         </div>
@@ -351,6 +356,23 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
       {/* Main Map Canvas */}
       <div className="relative flex-1 w-full h-full">
         <div ref={containerRef} className="w-full h-full" style={{ background: '#050508' }} />
+
+        {/* Offline / unreachable fallback notification */}
+        {tileError && (
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[1050] px-4 py-2 rounded-lg text-xs font-medium shadow-2xl backdrop-blur-md flex items-center gap-2 max-w-lg text-center"
+            style={{
+              background: 'rgba(30, 41, 59, 0.95)',
+              color: '#F8FAFC',
+              border: '1px solid rgba(245, 158, 11, 0.6)',
+            }}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+            <span>
+              Global NASA Treks tiles are currently unreachable offline. Local tactical layers for Jezero Crater remain fully operational.
+            </span>
+          </div>
+        )}
 
         {/* Target Site Callout floating box */}
         <div

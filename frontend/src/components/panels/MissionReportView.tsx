@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import type { BriefingResponse, RouteComputeResponse, RouteStrategy } from '@/types';
+import type { BriefingResponse, RouteComputeResponse, RouteStrategy, ReportStrategy } from '@/types';
 import { STRATEGY_META } from '@/types';
-import { getBriefing, getReportUrl } from '@/services/api';
-import { AlertTriangle, Cpu, Download, ExternalLink, FileText, RefreshCw } from 'lucide-react';
+import { getBriefing, getReportUrl, getPdfReportUrl } from '@/services/api';
+import { AlertTriangle, Cpu, Download, ExternalLink, FileText, RefreshCw, FileCheck } from 'lucide-react';
 import { withAlpha } from '@/utils/color';
 import Markdown from '@/utils/markdown';
 
@@ -14,7 +14,7 @@ import Markdown from '@/utils/markdown';
  * Two backend capabilities meet here:
  *
  *  1. GET /api/v1/report/briefing/{id}?strategy=… — a narrative Markdown
- *     briefing for one strategy, rendered inline.
+ *     briefing for one strategy or all 4 strategies, rendered inline.
  *  2. GET /api/v1/report/{id}?strategy=…&download=… — a complete,
  *     self-contained, print-optimised HTML document. That one is opened as a
  *     URL rather than fetched: it is already a finished document, and
@@ -70,29 +70,27 @@ export default function MissionReportView({
     return STRATEGY_ORDER.filter((s) => !!routeResult.strategies[s]);
   }, [routeResult]);
 
-  const [picked, setPicked] = useState<RouteStrategy | null>(null);
+  const [picked, setPicked] = useState<ReportStrategy | null>(null);
   const [briefing, setBriefing] = useState<BriefingResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /**
    * Which strategy the report covers. Derived rather than stored, so the export
-   * links always carry a strategy the computation actually contains — a stored
-   * value would lag one render behind a new computation and briefly produce a
-   * link to a strategy that is not there.
-   *
-   * Preference order: the user's explicit pick here, then the selection made
-   * elsewhere in the app, then BALANCED, then whatever exists.
+   * links always carry a strategy the computation actually contains.
    */
-  const strategy = useMemo<RouteStrategy | null>(() => {
+  const strategy = useMemo<ReportStrategy | null>(() => {
     if (available.length === 0) return null;
-    if (picked && available.includes(picked)) return picked;
+    if (picked === 'ALL') return 'ALL';
+    if (picked && available.includes(picked as RouteStrategy)) return picked;
     if (activeStrategy && available.includes(activeStrategy)) return activeStrategy;
     if (available.includes(DEFAULT_STRATEGY)) return DEFAULT_STRATEGY;
     return available[0];
   }, [picked, available, activeStrategy]);
 
   const computationId = routeResult?.computation_id ?? null;
+  const pdfUrl = computationId && strategy ? getPdfReportUrl(computationId, strategy) : '#';
+  const pdfFilename = computationId && strategy ? `NASA_TM_VICTOR_${strategy}_${computationId.slice(0, 8)}.pdf` : 'mission_report.pdf';
 
   const loadBriefing = useCallback(() => {
     if (!computationId || !strategy) {
@@ -125,18 +123,29 @@ export default function MissionReportView({
       style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
     >
       {/* Page header */}
-      <div className="mb-6">
-        <p className="section-heading mb-1">Mission Documentation</p>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-          >
-            <FileText size={18} />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="section-heading mb-1">Mission Documentation</p>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+            >
+              <FileText size={18} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                Mission Report &amp; Technical Memorandum
+              </h1>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                NASA Space Apps Challenge 2026 &middot; Project VICTOR Cartographic Intelligence
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            Mission Report
-          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/victor_logo.png" alt="VICTOR Mission Crest" className="w-12 h-12 object-contain rounded-full shadow-sm" />
         </div>
       </div>
 
@@ -164,14 +173,41 @@ export default function MissionReportView({
           >
             <p className="section-heading mb-2">Report subject</p>
             <div className="flex flex-wrap gap-2 mb-4">
+              {available.length > 1 && (
+                <button
+                  key="ALL"
+                  id="btn-report-subject-all"
+                  onClick={() => setPicked('ALL')}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                  style={{
+                    background: strategy === 'ALL'
+                      ? withAlpha('#0B3D91', 12)
+                      : 'var(--surface)',
+                    border: `1px solid ${
+                      strategy === 'ALL' ? withAlpha('#0B3D91', 50) : 'var(--border)'
+                    }`,
+                    color: strategy === 'ALL' ? '#0B3D91' : 'var(--text-secondary)',
+                  }}
+                  aria-pressed={strategy === 'ALL'}
+                  title="Include all 4 routing strategies in a single side-by-side comparative memorandum."
+                >
+                  <span
+                    aria-hidden
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ background: '#0B3D91' }}
+                  />
+                  All Cases (Comparative)
+                </button>
+              )}
               {available.map((s) => {
                 const meta = STRATEGY_META[s];
                 const selected = strategy === s;
                 return (
                   <button
                     key={s}
+                    id={`btn-report-subject-${s.toLowerCase()}`}
                     onClick={() => setPicked(s)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer"
                     style={{
                       background: selected
                         ? withAlpha(meta.color, 12)
@@ -194,9 +230,23 @@ export default function MissionReportView({
               })}
             </div>
 
-            <p className="section-heading mb-2">Export</p>
-            <div className="flex flex-wrap items-center gap-2">
+            <p className="section-heading mb-2">Export Mission Documentation</p>
+            <div className="flex flex-wrap items-center gap-2.5">
               <a
+                id="btn-export-pdf"
+                href={pdfUrl}
+                download={pdfFilename}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition-all hover:brightness-110 ${
+                  !strategy ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                }`}
+                style={{ background: '#0B3D91', color: '#FFFFFF' }}
+                title="Download Technical Memorandum PDF with multi-mission provenance."
+              >
+                <FileCheck size={14} />
+                <span>Export PDF</span>
+              </a>
+              <a
+                id="btn-open-report"
                 href={strategy ? getReportUrl(routeResult.computation_id, strategy, false) : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -208,6 +258,7 @@ export default function MissionReportView({
                 Open report
               </a>
               <a
+                id="btn-download-html"
                 href={strategy ? getReportUrl(routeResult.computation_id, strategy, true) : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -220,11 +271,10 @@ export default function MissionReportView({
                 title="Download the full mission report as a self-contained HTML file."
               >
                 <Download size={13} />
-                Download report
+                Download HTML
               </a>
-              <span className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                Self-contained, print-optimised HTML — briefing, four-strategy comparison,
-                route profile, science targets, and data-provenance and method appendices.
+              <span className="text-[10px] leading-snug w-full sm:w-auto mt-1 sm:mt-0" style={{ color: 'var(--text-muted)' }}>
+                Technical Memorandum format &middot; Includes multi-mission PDS provenance, Pareto analysis &amp; consumables reserve.
               </span>
             </div>
           </div>
@@ -241,6 +291,7 @@ export default function MissionReportView({
                 </h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   Computation <span className="font-mono">{routeResult.computation_id}</span>
+                  {strategy === 'ALL' ? ' · 4-Case Comparative Briefing' : ` · Case: ${strategy}`}
                 </p>
               </div>
               <button

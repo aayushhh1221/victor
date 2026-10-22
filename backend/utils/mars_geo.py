@@ -37,14 +37,36 @@ def grid_to_latlon(row: int, col: int, meta: GridMetadata) -> Tuple[float, float
     return lat, lon
 
 
-def latlon_to_grid(lat: float, lon: float, meta: GridMetadata) -> Tuple[int, int]:
+def validate_jezero_coordinate(lat: float, lon: float, meta: GridMetadata) -> None:
+    """Validate that coordinates are finite and fall strictly within the Jezero study extent."""
+    if not math.isfinite(lat) or not math.isfinite(lon):
+        raise ValueError(f"Coordinate values must be finite numbers (got lat={lat}, lon={lon}).")
+    if not (meta.lat_min <= lat <= meta.lat_max and meta.lon_min <= lon <= meta.lon_max):
+        raise ValueError(
+            f"Coordinate ({lat:.4f}°N, {lon:.4f}°E) is outside the Jezero Crater grid extent "
+            f"[{meta.lat_min}°..{meta.lat_max}°N, {meta.lon_min}°..{meta.lon_max}°E]."
+        )
+
+
+def latlon_to_grid(lat: float, lon: float, meta: GridMetadata, clamp: bool = True) -> Tuple[int, int]:
     """
     Convert Mars planetocentric (lat, lon) to nearest grid (row, col).
-    Clamps to grid bounds.
+    
+    Args:
+        lat, lon: Mars planetocentric coordinates.
+        meta: GridMetadata specification.
+        clamp: If False, raises ValueError for out-of-extent or non-finite values.
+               If True, clamps to [0, rows-1] × [0, cols-1].
 
     Returns:
-        (row, col) 0-indexed, clamped to [0, rows-1] × [0, cols-1]
+        (row, col) 0-indexed integer cell indices.
     """
+    if not clamp:
+        validate_jezero_coordinate(lat, lon, meta)
+
+    if not math.isfinite(lat) or not math.isfinite(lon):
+        raise ValueError("Cannot convert non-finite coordinates to grid cell.")
+
     row_f = (meta.lat_max - lat) / (meta.lat_max - meta.lat_min) * meta.rows - 0.5
     col_f = (lon - meta.lon_min) / (meta.lon_max - meta.lon_min) * meta.cols - 0.5
     row = int(round(row_f))

@@ -31,8 +31,9 @@ async def get_science_targets(data_service=Depends(get_data_service)):
 async def get_science_profile(
     computation_id: str = Query(...),
     strategy: str = Query("BALANCED"),
+    data_service=Depends(get_data_service),
 ):
-    """Get per-segment science profile for a computed route."""
+    """Get per-segment science profile for a computed route with authentic MOLA elevation."""
     store = get_computation_store()
     stored = store.get(computation_id)
     if not stored:
@@ -40,7 +41,7 @@ async def get_science_profile(
     route = stored["routes"].get(strategy)
     if not route:
         raise HTTPException(status_code=404, detail=f"Strategy '{strategy}' not in computation")
-    return compute_route_science_profile(route, computation_id, strategy)
+    return compute_route_science_profile(route, computation_id, strategy, data_service=data_service)
 
 
 @router.get("/compare/{computation_id}")

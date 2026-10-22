@@ -6,6 +6,7 @@ Science-seeking is achieved via science_penalty = weight * (1 - science_value),
 NOT via negative weights. A* optimality/consistency is preserved.
 """
 from __future__ import annotations
+import copy
 import heapq
 import logging
 import math
@@ -22,6 +23,17 @@ from ..utils.mars_geo import grid_to_latlon, latlon_to_grid, haversine_mars
 from .data_service import DataService
 
 logger = logging.getLogger(__name__)
+
+
+class UnsafeEndpointError(ValueError):
+    """Raised when a start or destination point violates terrain slope or traversability."""
+    pass
+
+
+class OverEvaBudgetError(ValueError):
+    """Raised when traversal duration exceeds the mission EVA life-support budget."""
+    pass
+
 
 # Approved weight profiles — all non-negative (post-audit correction)
 WEIGHT_PROFILES: dict[str, dict[str, float]] = {
@@ -90,17 +102,53 @@ class RouteEngine:
         dest: Coordinate,
         constraints: MissionConstraints,
         strategies: Optional[list[str]] = None,
+        weight_overrides: Optional[dict[str, dict[str, float]]] = None,
+        allow_infeasible: bool = False,
     ) -> dict[str, Route]:
         """Compute routes for requested strategies. Returns dict keyed by strategy name."""
         if strategies is None:
             strategies = list(WEIGHT_PROFILES.keys())
 
-        start_cell = latlon_to_grid(start.lat, start.lon, self.meta)
-        dest_cell = latlon_to_grid(dest.lat, dest.lon, self.meta)
+        # Validate start and dest cell coordinates (strict, no silent clamping)
+        start_cell = latlon_to_grid(start.lat, start.lon, self.meta, clamp=False)
+        dest_cell = latlon_to_grid(dest.lat, dest.lon, self.meta, clamp=False)
+
+        # Pre-flight safety inspection of start and destination endpoints
+        start_slope = float(self._slope[start_cell[0], start_cell[1]])
+        if start_slope > constraints.max_slope_deg:
+            raise UnsafeEndpointError(
+                f"Start location slope ({start_slope:.1f}°) exceeds max slope limit ({constraints.max_slope_deg:.1f}°)."
+            )
+        start_trav = float(self._trav[start_cell[0], start_cell[1]])
+        if start_trav >= IMPASSABLE_TRAVERSABILITY:
+            raise UnsafeEndpointError(
+                f"Start location is on impassable terrain (traversability={start_trav:.1f} >= {IMPASSABLE_TRAVERSABILITY})."
+            )
+
+        dest_slope = float(self._slope[dest_cell[0], dest_cell[1]])
+        if dest_slope > constraints.max_slope_deg:
+            raise UnsafeEndpointError(
+                f"Destination location slope ({dest_slope:.1f}°) exceeds max slope limit ({constraints.max_slope_deg:.1f}°)."
+            )
+        dest_trav = float(self._trav[dest_cell[0], dest_cell[1]])
+        if dest_trav >= IMPASSABLE_TRAVERSABILITY:
+            raise UnsafeEndpointError(
+                f"Destination location is on impassable terrain (traversability={dest_trav:.1f} >= {IMPASSABLE_TRAVERSABILITY})."
+            )
 
         results: dict[str, Route] = {}
+        over_budget_details: list[str] = []
+
         for strategy_name in strategies:
-            weights = WEIGHT_PROFILES[strategy_name]
+            base_w = WEIGHT_PROFILES.get(strategy_name, WEIGHT_PROFILES["BALANCED"])
+            weights = copy.deepcopy(base_w)
+            if weight_overrides:
+                overrides_for_strat = weight_overrides.get(strategy_name, weight_overrides)
+                if isinstance(overrides_for_strat, dict):
+                    for k, v in overrides_for_strat.items():
+                        if k in weights and isinstance(v, (int, float)) and 0.0 <= v <= 5.0:
+                            weights[k] = float(v)
+
             t0 = time.perf_counter()
             cell_path = self._astar(start_cell, dest_cell, weights, constraints)
             elapsed = time.perf_counter() - t0
@@ -113,7 +161,25 @@ class RouteEngine:
             route = self._build_route(
                 cell_path, RouteStrategy(strategy_name), constraints, weights
             )
-            results[strategy_name] = route
+            if route.is_feasible:
+                results[strategy_name] = route
+            elif allow_infeasible:
+                results[strategy_name] = route
+                over_budget_details.append(
+                    f"{strategy_name}: {route.metrics.estimated_time_hours:.2f}h "
+                    f"(+20% reserve = {route.metrics.required_eva_time_with_reserve_hours:.2f}h > {constraints.max_eva_hours:.2f}h)"
+                )
+            else:
+                over_budget_details.append(
+                    f"{strategy_name}: {route.metrics.estimated_time_hours:.2f}h "
+                    f"(+20% reserve = {route.metrics.required_eva_time_with_reserve_hours:.2f}h > {constraints.max_eva_hours:.2f}h)"
+                )
+
+        if not results and over_budget_details and not allow_infeasible:
+            raise OverEvaBudgetError(
+                f"No feasible route within {constraints.max_eva_hours:.1f}h EVA budget (including 20% life-support reserve). "
+                f"Candidate paths exceeded budget: {'; '.join(over_budget_details)}."
+            )
 
         return results
 
@@ -355,6 +421,12 @@ class RouteEngine:
         effective_speed_kmh = constraints.walking_speed_kmh / max(1.0, avg_trav / 3.0)
         est_time_h = total_distance_km / max(effective_speed_kmh, 0.1)
 
+        # EVA budget & 20% life-support reserve calculations (decision A1)
+        reserve_h = round(est_time_h * 0.20, 3)
+        time_with_reserve_h = round(est_time_h + reserve_h, 3)
+        eva_margin_h = round(constraints.max_eva_hours - time_with_reserve_h, 3)
+        is_feasible = time_with_reserve_h <= constraints.max_eva_hours
+
         avg_hazard = float(np.mean([s.hazard_score for s in segments])) if segments else 0.0
         total_sci = float(sum(s.science_value * s.distance_m for s in segments)) / total_distance_m if total_distance_m > 0 else 0.0
         avg_sci = float(np.mean([s.science_value for s in segments])) if segments else 0.0
@@ -370,11 +442,26 @@ class RouteEngine:
             elevation_gain_m=round(total_elevation_gain, 1),
             elevation_loss_m=round(total_elevation_loss, 1),
             confidence=ConfidenceLevel.MODERATE,
+            effective_eva_budget_hours=constraints.max_eva_hours,
+            required_eva_time_with_reserve_hours=time_with_reserve_h,
+            eva_reserve_hours=reserve_h,
+            eva_margin_hours=eva_margin_h,
+            is_feasible=is_feasible,
         )
+
+        infeasibility_reason = None
+        if not is_feasible:
+            infeasibility_reason = (
+                f"Required traversal time with 20% reserve ({time_with_reserve_h:.2f} h) "
+                f"exceeds max EVA limit ({constraints.max_eva_hours:.2f} h)."
+            )
 
         return Route(
             strategy=strategy,
             path=coords,
             segments=segments,
             metrics=metrics,
+            effective_weights=copy.deepcopy(weights),
+            is_feasible=is_feasible,
+            infeasibility_reason=infeasibility_reason,
         )

@@ -45,11 +45,10 @@ def _science_tier(sci_val: float) -> int:
     return 4
 
 
-def _surface_material(hazard_proxy: float) -> tuple[str, MineralClass]:
-    """Approximate surface material from hazard/TI proxy value [0–10]."""
-    norm = hazard_proxy / 10.0
+def _surface_material(thermal_proxy: float) -> tuple[str, MineralClass]:
+    """Approximate surface material from THEMIS thermal inertia proxy value [0.0–1.0]."""
     for lo, hi, label, mineral in THEMIS_MATERIAL_MAP:
-        if lo <= norm < hi:
+        if lo <= thermal_proxy < hi:
             return label, mineral
     return "Exposed rock / bedrock", MineralClass.PYROXENE
 
@@ -79,7 +78,11 @@ class EvidenceEngine:
         """
         bd = segment.cost_breakdown
         tier = _science_tier(segment.science_value)
-        surface_mat, mineral = _surface_material(segment.hazard_score)
+        ti_val = self.ds.get_thermal_proxy(segment.end.lat, segment.end.lon)
+        if ti_val is not None:
+            surface_mat, _ = _surface_material(ti_val)
+        else:
+            surface_mat, _ = _surface_material(0.5)
         mineral_class, mineral_desc = SCIENCE_TIER_MINERAL.get(tier, (MineralClass.BASALT, "Unknown"))
 
         # Analytical counterfactuals — pure arithmetic, no extra computation
@@ -111,20 +114,21 @@ class EvidenceEngine:
                 "layer": "surface_material",
                 "source": "THEMIS/Mars Odyssey",
                 "instrument": "THEMIS (Thermal Emission Imaging System)",
-                "mission": "Mars Odyssey",
+                "mission": "2001 Mars Odyssey",
                 "confidence": LAYER_CONFIDENCE["THEMIS_surface_material"].value,
                 "resolution_m": 100,
-                "data_type": "VERIFIED_SNAPSHOT",
+                "data_type": "DERIVED",
+                "label": "Relative night-IR brightness proxy (0–1), not direct mineralogy.",
             },
             {
                 "layer": "science_value",
-                "source": "CRISM/MRO (tier model)",
+                "source": "CRISM/MRO (spectral summary parameters)",
                 "instrument": "CRISM (Compact Reconnaissance Imaging Spectrometer for Mars)",
                 "mission": "Mars Reconnaissance Orbiter (MRO)",
                 "confidence": LAYER_CONFIDENCE["CRISM_science_value_model"].value,
-                "resolution_m": 18,
+                "resolution_m": 181.1424,
                 "data_type": "MODEL_DERIVED",
-                "label": "MODEL — Science Priority Score. NOT a direct measurement.",
+                "label": "MODEL — Science Priority from CRISM MRDR spectral indices (OLINDEX3/CINDEX2). NOT an in-situ measurement.",
             },
         ]
 

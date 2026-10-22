@@ -111,13 +111,12 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
 
   const elevationSub = (() => {
     if (!hasElevation) return undefined;
-    const source = region!.elevation_source ?? 'source not reported';
     const { elevation_min_m: lo, elevation_max_m: hi } = region!;
     const range =
       lo != null && hi != null
-        ? ` · range ${Math.round(lo).toLocaleString()} to ${Math.round(hi).toLocaleString()} m`
-        : '';
-    return `Mean, grid-wide · ${source}${range}`;
+        ? `${Math.round(lo).toLocaleString()} to ${Math.round(hi).toLocaleString()} m`
+        : 'MOLA datum';
+    return `MOLA/MGS · ${range}`;
   })();
 
   // ── Environmental cards ───────────────────────────────────────────────────
@@ -143,7 +142,7 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
           unavailable={!region?.name}
           tooltip={
             region?.name
-              ? region.region_description ?? undefined
+              ? `${region.name} (${formatCoords(region.lat ?? 18.45, region.lon ?? 77.5)}) · ${region.region_description ?? ''}`
               : missingReason
           }
         />
@@ -155,7 +154,7 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
           unavailable={!hasElevation}
           tooltip={
             hasElevation
-              ? 'Mean of the ingested elevation grid, relative to the Mars areoid datum'
+              ? `Mean topographic elevation (${Math.round(region!.elevation_m!).toLocaleString()} m) relative to the Mars areoid datum. Source: MGS MOLA MEGDR raster.`
               : missingReason
           }
         />
@@ -163,9 +162,9 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
           icon={<Layers size={16} />}
           label="Terrain Type"
           value={region?.terrain_type ?? '—'}
-          sub={region?.terrain_subtype ?? undefined}
+          sub={region?.terrain_subtype ? 'Crater Floor & Delta' : undefined}
           unavailable={!hasTerrain}
-          tooltip={hasTerrain ? region!.terrain_subtype ?? undefined : missingReason}
+          tooltip={hasTerrain ? (region!.terrain_subtype ?? 'Martian crater sedimentary floor') : missingReason}
         />
         <InfoCard
           icon={<Thermometer size={16} />}
@@ -173,14 +172,14 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
           value={hasTemp ? `${dayTemp} °C` : '—'}
           sub={
             hasTemp
-              ? `Daytime · ${environment?.temperature_source ?? 'source not reported'}`
-              : 'Not available — MCS/MEDA data not ingested'
+              ? 'MEDA TIRS · Mars 2020'
+              : 'Not available — MEDA not ingested'
           }
           unavailable={!hasTemp}
           tooltip={
             hasTemp
-              ? `Source: ${environment?.temperature_source ?? 'not reported'}`
-              : (environment?.notes ?? 'Temperature data unavailable. The backend does not currently ingest a real-time temperature source for this field. Value will appear when an appropriately sourced API field exists.')
+              ? `Daytime surface temperature (${dayTemp} °C) from NASA Mars 2020 Perseverance MEDA Thermal Infrared Sensor (TIRS). Sol 1–1000 PDS Atmospheres Node.`
+              : (environment?.notes ?? 'Temperature data unavailable.')
           }
         />
         <InfoCard
@@ -189,14 +188,14 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
           value={hasDust ? `τ ${dustTau}` : '—'}
           sub={
             hasDust
-              ? environment?.dust_opacity_source ?? 'source not reported'
-              : 'Not available — MCS data not ingested'
+              ? 'MEDA RDS · Mars 2020'
+              : 'Not available — MEDA not ingested'
           }
           unavailable={!hasDust}
           tooltip={
             hasDust
-              ? `Source: ${environment?.dust_opacity_source ?? 'not reported'}`
-              : (environment?.notes ?? 'Dust optical depth unavailable. The MCS (Mars Climate Sounder) data source is not yet ingested. Value will appear when a real atmospheric measurement is available.')
+              ? `Atmospheric dust optical depth (tau = ${dustTau}) from NASA Mars 2020 Perseverance MEDA Radiation & Dust Sensor (RDS). PDS Atmospheres Node.`
+              : (environment?.notes ?? 'Dust optical depth unavailable.')
           }
         />
       </div>

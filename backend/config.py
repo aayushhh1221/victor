@@ -1,7 +1,7 @@
 """VICTOR — Application configuration."""
 import os
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from .models.enums import DataMode
 
@@ -36,9 +36,11 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     ALLOWED_ORIGINS: str = ""
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @property
     def cors_origins(self) -> list[str]:

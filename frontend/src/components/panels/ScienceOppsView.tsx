@@ -104,20 +104,23 @@ export default function ScienceOppsView({
         </p>
       </div>
 
-      {/* Honesty caveat — required by brief */}
+      {/* Scientific Model Priority Notice */}
       <div
-        className="flex items-start gap-2 p-3 rounded-lg mb-6"
+        className="flex items-start gap-3 p-4 rounded-xl mb-6 shadow-sm"
         style={{
-          background: 'var(--mode-demo-bg)',
-          border: '1px solid var(--mode-demo-border)',
-          color: 'var(--mode-demo)',
+          background: 'var(--surface-raised)',
+          border: '1px solid var(--border)',
         }}
       >
-        <Info size={14} className="flex-shrink-0 mt-0.5" />
-        <p className="text-xs leading-relaxed">
-          <strong>MODEL scores — not direct measurements.</strong>{' '}
-          {scienceLabel || 'Science values are derived from CRISM mineral mapping and MOLA topography, weighted by astrobiological relevance. They do not represent direct observations of biosignatures.'}
-        </p>
+        <Info size={16} className="flex-shrink-0 mt-0.5 text-blue-400" />
+        <div>
+          <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Scientific Model Priority Scores {scienceLabel ? `· ${scienceLabel}` : ''}
+          </p>
+          <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Science values are mathematical model scores derived from MRO CRISM multispectral mineral mapping (olivine & carbonate spectral absorption bands) and MOLA topography, weighted by astrobiological relevance. They guide autonomous route arbitration and do not represent direct in-situ confirmation of biosignatures.
+          </p>
+        </div>
       </div>
 
       {/* Science yield by strategy — every figure from /science/compare */}

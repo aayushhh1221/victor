@@ -3,14 +3,16 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from pathlib import Path
 from typing import Annotated
 from fastapi import APIRouter, HTTPException, Depends
 from ..models.schemas import (
     RouteComputeRequest, RouteComputeResponse,
     RouteComputeComparison, RouteRangeSummary, SegmentEvidenceResponse
 )
+from ..models.domain import MissionConstraints
 from ..models.enums import ParetoStatus
-from ..services.route_engine import RouteEngine
+from ..services.route_engine import RouteEngine, UnsafeEndpointError, OverEvaBudgetError
 from ..services.evidence_engine import EvidenceEngine
 from ..services.pareto_engine import compute_pareto_dominance
 from ..services.science_engine import get_nearby_targets
@@ -29,6 +31,11 @@ router = APIRouter(prefix="/api/v1/routes", tags=["routes"])
 # evidence, science profiles and scenario comparisons all 404'd for anyone who
 # left a tab open. It is also LRU-bounded, which the plain dict was not.
 _computation_store = build_store()
+
+
+def get_computation_store():
+    """Accessor for computation store (used by scenario router)."""
+    return _computation_store
 
 
 @router.post("/compute", response_model=RouteComputeResponse)
@@ -53,11 +60,13 @@ async def compute_routes(
             detail="Start and destination coordinates must be distinct (at least 50m apart)."
         )
 
+    manifest_id = getattr(data_service, "manifest_id", None)
     cache_key = route_cache_key(
         req.start.lat, req.start.lon,
         req.destination.lat, req.destination.lon,
         req.constraints.model_dump(),
         strategy_names,
+        data_manifest_id=manifest_id,
     )
     cached = _computation_store.get_cached_route(cache_key)
     if cached is not None:
@@ -77,9 +86,14 @@ async def compute_routes(
             # fall through and recompute.
             logger.warning(f"Discarding unusable cache entry {cache_key[:12]}…: {exc}")
 
-    routes = engine.compute_routes(
-        req.start, req.destination, req.constraints, strategy_names
-    )
+    try:
+        routes = engine.compute_routes(
+            req.start, req.destination, req.constraints, strategy_names,
+            weight_overrides=req.weight_overrides,
+            allow_infeasible=req.allow_infeasible
+        )
+    except (UnsafeEndpointError, OverEvaBudgetError, ValueError) as err:
+        raise HTTPException(status_code=422, detail=str(err))
 
     if not routes:
         raise HTTPException(
@@ -92,10 +106,12 @@ async def compute_routes(
 
     # Attach Pareto status and nearby science targets to each route
     all_targets = data_service.get_science_targets()
+    detour_r = getattr(req.constraints, "science_detour_radius_m", 1000.0) or 1000.0
     for strategy_name, route in routes.items():
         route.pareto_status = pareto.get(strategy_name, ParetoStatus.NON_DOMINATED)
         route.science_targets_nearby = get_nearby_targets(
             route, all_targets,
+            radius_m=detour_r,
             walking_speed_kmh=req.constraints.walking_speed_kmh
         )
 
@@ -126,6 +142,9 @@ async def compute_routes(
         comparison=comparison,
         pareto={k: v for k, v in pareto.items()},
         provenance=data_service.get_provenance(),
+        data_manifest_id="manifest-jezero-2026-v1",
+        pipeline_version="1.0.0",
+        effective_constraints=req.constraints,
     )
 
     # Store for evidence queries and scenario comparisons
@@ -134,6 +153,14 @@ async def compute_routes(
         "routes": routes,
         "request": req,
     }
+
+    # Persist to disk cache so restarts never drop user reports
+    try:
+        cache_dir = Path(__file__).parent.parent / "data" / "cache" / "computations"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        (cache_dir / f"{computation_id}.json").write_text(response.model_dump_json(), encoding="utf-8")
+    except Exception as exc:
+        logger.warning(f"Failed to persist computation {computation_id} to disk: {exc}")
 
     # Cache by inputs so an identical request skips A* next time. Stored after
     # the computation succeeds, so a failed search is never cached.
@@ -182,11 +209,20 @@ async def get_demo_routes(data_service=Depends(get_data_service)):
         data = json.load(f)
 
     response = RouteComputeResponse.model_validate(data)
-    # Also register in computation store so segment evidence queries work immediately
+    req_obj = None
+    first_strat = next(iter(response.strategies.values()), None)
+    if first_strat and len(first_strat.path) >= 2:
+        req_obj = RouteComputeRequest(
+            start=first_strat.path[0],
+            destination=first_strat.path[-1],
+            constraints=response.effective_constraints or MissionConstraints(),
+            strategies=list(response.strategies.keys()),
+        )
+    # Also register in computation store so segment evidence and scenario queries work immediately
     _computation_store[response.computation_id] = {
         "response": response,
         "routes": response.strategies,
-        "request": None,
+        "request": req_obj,
     }
     return response
 

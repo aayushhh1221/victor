@@ -112,3 +112,13 @@ class TestAPIEndpoints:
         assert "modified_computation_id" in diff_data
         assert "diffs" in diff_data
         assert "impact_summary" in diff_data
+
+    def test_environment_current_endpoint(self, client):
+        resp = client.get("/api/v1/environment/current")
+        assert resp.status_code == 200
+        env = resp.json()
+        assert env["region"] == "Jezero Crater, Mars"
+        assert env["surface_temperature_day_c"] is not None
+        assert env["atmospheric_pressure_pa"] is not None
+        assert env["dust_opacity_tau"] is not None
+        assert "MEDA" in env["temperature_source"]

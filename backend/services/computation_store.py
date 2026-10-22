@@ -68,6 +68,8 @@ def route_cache_key(
     dest_lon: float,
     constraints: dict,
     strategies: Optional[list[str]] = None,
+    weight_overrides: Optional[dict[str, float]] = None,
+    data_manifest_id: Optional[str] = None,
 ) -> str:
     """Stable cache key for a route computation.
 
@@ -83,6 +85,8 @@ def route_cache_key(
         "dest": [round(dest_lat, 5), round(dest_lon, 5)],
         "constraints": {k: constraints[k] for k in sorted(constraints)},
         "strategies": sorted(strategies) if strategies else None,
+        "weight_overrides": {k: round(weight_overrides[k], 4) for k in sorted(weight_overrides)} if weight_overrides else None,
+        "data_manifest_id": data_manifest_id,
     }
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -426,15 +430,18 @@ class ComputationStore:
     def _serialise(self, value: dict) -> Optional[dict]:
         """Convert a stored entry to JSON-safe form.
 
-        Entries hold Pydantic models (the response and its routes). Only the
-        response is persisted — `routes` is recoverable from it on rehydration,
-        so storing both would double the row size for nothing.
+        Entries hold Pydantic models (the response, routes, and request). Storing
+        the request preserves full scenario analysis capabilities across restarts.
         """
         try:
             response = value.get("response")
             if response is None or not hasattr(response, "model_dump_json"):
                 return None
-            return {"response": json.loads(response.model_dump_json())}
+            result = {"response": json.loads(response.model_dump_json())}
+            req = value.get("request")
+            if req is not None and hasattr(req, "model_dump_json"):
+                result["request"] = json.loads(req.model_dump_json())
+            return result
         except Exception as exc:
             logger.warning(f"Could not serialise computation: {exc}")
             return None
@@ -442,16 +449,15 @@ class ComputationStore:
     def _deserialise(self, payload: dict) -> Optional[dict]:
         """Rebuild a store entry from its persisted form."""
         try:
-            from ..models.schemas import RouteComputeResponse
+            from ..models.schemas import RouteComputeRequest, RouteComputeResponse
 
             response = RouteComputeResponse.model_validate(payload["response"])
+            req_data = payload.get("request")
+            request_obj = RouteComputeRequest.model_validate(req_data) if req_data else None
             return {
                 "response": response,
                 "routes": response.strategies,
-                # The original request is not persisted; consumers treat a
-                # missing request as "constraints unknown", which is already the
-                # case for the precomputed demo entry.
-                "request": None,
+                "request": request_obj,
             }
         except Exception as exc:
             logger.warning(f"Could not deserialise computation: {exc}")

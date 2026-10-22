@@ -1,0 +1,129 @@
+{
+  "files": {
+    "carbonate_index.npy": {
+      "sha256": "88e522e2f7e7c31b0534789f31dce6358f59c5c9ab6dfd83ed5553f6708e67b1",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "confidence.npy": {
+      "sha256": "5d950f20c1ed8fc99782b8deaba7725961686842771eb984e46aacce66c1d1ce",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "elevation.npy": {
+      "sha256": "44ca247bb4909d0c4518360060bc2866f7de3b02b4bf16afccf67b868e80577e",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "grid_metadata.json": {
+      "sha256": "2da336d256caa2d81bf871d8c46108fd81d8234ab558794b4cea1c58c191276d",
+      "bytes": 785
+    },
+    "hazard.npy": {
+      "sha256": "303900eeda5558c67025be1326fd477ce8af53827aea3f155ca81050998bd381",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "imagery.npy": {
+      "sha256": "1de6365b93971f504565b545ed2519ae574e132416006e07f1fa851935093bf7",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "meda_environment.json": {
+      "sha256": "e7126b118436965bcb53ebfcab03a21e1d5c2f2b6a0dfdcfb63aa0c575f8f98e",
+      "bytes": 1034
+    },
+    "olivine_index.npy": {
+      "sha256": "68ac0870950602c5c470377c3bb998f2ca892b48ca4c76a98b18bfd5bb2c047c",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "provenance.json": {
+      "sha256": "dfedf89b002b77f94ac9553a2820918eb832e35ebbd80497d3a1bd52636c9811",
+      "bytes": 9201
+    },
+    "provenance_detail.json": {
+      "sha256": "a8fa36faa7d5143e47bf09e335d2d8a9ccb65939c13bb3c7b09087c22da6e6f3",
+      "bytes": 15629
+    },
+    "science_targets.json": {
+      "sha256": "948ff34fe29078abc514d42953fb7169d74b3f3a62feba898fcc9f4933ca1a3c",
+      "bytes": 3591
+    },
+    "science_value.npy": {
+      "sha256": "a62b5f360a610ec0f2a1d4f51ed5145cf7c4c26532ff8a4417b61cb7d006aae0",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "slope.npy": {
+      "sha256": "e5faacfd81e0d2751cce632b1b6870e9c3f3b538635009311599d8f83c3af424",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "terrain_class.npy": {
+      "sha256": "811d3363085416cf8d2d6dac568411606a3484138b653ae8d223b246dc9821bf",
+      "bytes": 180128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "int16"
+    },
+    "terrain_classes.json": {
+      "sha256": "ef5b7a2e1b4a8daa7f9abf40ad7fec5bc7bfff53b80bedf62b9284313ea87d24",
+      "bytes": 2331
+    },
+    "thermal_proxy.npy": {
+      "sha256": "fe1c505590749e12a997d48052d187477c41669c02f4f2fec55eabccbe6e41ff",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    },
+    "traversability.npy": {
+      "sha256": "0a42dc5315f368279c8d310ee31a0db97138e245c538b8ab35dbaef677c8c442",
+      "bytes": 360128,
+      "shape": [
+        300,
+        300
+      ],
+      "dtype": "float32"
+    }
+  },
+  "pipeline_version": "1.0.0",
+  "manifest_id": "3a25a7b5caf452131d8a213af83b8e1ee4a15b23ef9914ab722005edf94b91e0"
+}

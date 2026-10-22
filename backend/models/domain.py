@@ -9,8 +9,8 @@ from .enums import (
 
 class Coordinate(BaseModel):
     """Mars planetocentric coordinate."""
-    lat: float = Field(..., description="Planetocentric latitude (degrees)")
-    lon: float = Field(..., description="East-positive longitude (degrees)")
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Planetocentric latitude (degrees)")
+    lon: float = Field(..., ge=-180.0, le=360.0, description="East-positive longitude (degrees)")
 
 
 class GridMetadata(BaseModel):
@@ -34,6 +34,7 @@ class MissionConstraints(BaseModel):
     max_slope_deg: float = Field(20.0, ge=5.0, le=30.0)
     max_eva_hours: float = Field(6.0, ge=1.0, le=12.0)
     walking_speed_kmh: float = Field(3.0, ge=0.5, le=6.0)
+    science_detour_radius_m: Optional[float] = Field(1000.0, ge=100.0, le=5000.0)
 
 
 class EdgeCostBreakdown(BaseModel):
@@ -84,6 +85,11 @@ class RouteMetrics(BaseModel):
     elevation_loss_m: float
     impassable_cells_avoided: int = 0
     confidence: ConfidenceLevel = ConfidenceLevel.MODERATE
+    effective_eva_budget_hours: Optional[float] = None
+    required_eva_time_with_reserve_hours: Optional[float] = None
+    eva_reserve_hours: Optional[float] = None
+    eva_margin_hours: Optional[float] = None
+    is_feasible: bool = True
 
 
 class ScienceTarget(BaseModel):
@@ -111,6 +117,9 @@ class Route(BaseModel):
     metrics: RouteMetrics
     science_targets_nearby: list[ScienceTarget] = Field(default_factory=list)
     pareto_status: ParetoStatus = ParetoStatus.NON_DOMINATED
+    effective_weights: dict[str, float] = Field(default_factory=dict)
+    is_feasible: bool = True
+    infeasibility_reason: Optional[str] = None
 
 
 class ProvenanceRecord(BaseModel):

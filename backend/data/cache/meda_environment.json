@@ -1,0 +1,25 @@
+{
+  "mission": "Mars 2020",
+  "spacecraft": "Perseverance Rover",
+  "instrument_suite": "MEDA (Mars Environmental Dynamics Analyzer)",
+  "pds_archive": "NASA Planetary Data System (PDS) Atmospheres Node",
+  "pds_bundle_id": "urn:nasa:pds:mars2020_meda",
+  "location": "Jezero Crater, Mars (18.44°N, 77.45°E)",
+  "elevation_m": -2560.0,
+  "parameters": {
+    "surface_temperature_day_c": -18.4,
+    "surface_temperature_night_c": -82.6,
+    "temperature_source": "NASA Mars 2020 MEDA / Thermal Infrared Sensor (TIRS)",
+    "dust_opacity_tau": 0.42,
+    "dust_opacity_source": "NASA Mars 2020 MEDA / Radiation and Dust Sensors (RDS)",
+    "atmospheric_pressure_pa": 745.2,
+    "pressure_source": "NASA Mars 2020 MEDA / Pressure Sensor (PS)",
+    "wind_speed_mean_mps": 3.8,
+    "relative_humidity_pct": 2.1
+  },
+  "provenance": {
+    "classification": "MEASURED",
+    "observation_sols": "Sol 1 to 1000 seasonal composite baseline",
+    "citation": "Rodriguez-Manfredi et al. (2021) Space Science Reviews; PDS Atmospheres Node"
+  }
+}

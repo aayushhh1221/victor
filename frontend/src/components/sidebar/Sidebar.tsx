@@ -9,12 +9,12 @@ import {
 
 interface SidebarProps {
   activeSection: string;
-  onSectionChange: (s: string) => void;
+  onSectionChange: (_s: string) => void;
 }
 
 const SECTIONS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: 'overview',    icon: Activity,     label: 'Mission Overview' },
-  { id: 'plan',        icon: Route,        label: 'Plan Marswalk' },
+  { id: 'plan',        icon: Route,        label: 'Mission Planner' },
   { id: 'map',         icon: Globe,        label: 'Global Mars Explorer' },
   { id: 'analysis',    icon: BarChart3,    label: 'Route Analysis' },
   { id: 'science',     icon: FlaskConical, label: 'Science Opportunities' },
@@ -40,7 +40,7 @@ function NavItem({
   icon: LucideIcon;
   label: string;
   activeSection: string;
-  onSectionChange: (s: string) => void;
+  onSectionChange: (_s: string) => void;
 }) {
   const isActive = activeSection === id;
   return (
@@ -58,7 +58,7 @@ function NavItem({
 export default function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
   return (
     <aside
-      className="w-[210px] flex-shrink-0 flex flex-col border-r overflow-y-auto"
+      className="w-full lg:w-[210px] flex-shrink-0 flex flex-row lg:flex-col border-b lg:border-b-0 lg:border-r overflow-x-auto lg:overflow-y-auto"
       style={{
         background: 'var(--sidebar-bg)',
         borderColor: 'var(--sidebar-border)',
@@ -66,7 +66,7 @@ export default function Sidebar({ activeSection, onSectionChange }: SidebarProps
     >
       {/* Study region */}
       <div
-        className="px-3 py-2.5 border-b"
+        className="hidden lg:block px-3 py-2.5 border-b"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         <p className="section-heading mb-0.5">Study Region</p>
@@ -79,7 +79,7 @@ export default function Sidebar({ activeSection, onSectionChange }: SidebarProps
       </div>
 
       {/* Main navigation */}
-      <nav className="flex-1 p-2 space-y-0.5" aria-label="Main navigation">
+      <nav className="flex lg:flex-col flex-row flex-1 p-2 gap-1 lg:space-y-0.5" aria-label="Main navigation">
         {SECTIONS.map((s) => (
           <NavItem
             key={s.id}
@@ -91,10 +91,10 @@ export default function Sidebar({ activeSection, onSectionChange }: SidebarProps
       </nav>
 
       {/* Divider */}
-      <div style={{ borderTop: '1px solid var(--border-subtle)' }} />
+      <div className="hidden lg:block" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Bottom navigation */}
-      <nav className="p-2 space-y-0.5" aria-label="Secondary navigation">
+      <nav className="flex lg:flex-col flex-row p-2 gap-1 lg:space-y-0.5" aria-label="Secondary navigation">
         {BOTTOM_SECTIONS.map((s) => (
           <NavItem
             key={s.id}

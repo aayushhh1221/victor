@@ -1,5 +1,6 @@
 """VICTOR — Data service: loads and serves all precomputed NASA grids."""
 from __future__ import annotations
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -34,10 +35,16 @@ class DataService:
         self._provenance: list[ProvenanceRecord] = []
         self._data_mode: DataMode = DataMode.DEMONSTRATION
         self._loaded = False
+        self._manifest: Optional[dict] = None
+        self._manifest_id: Optional[str] = None
+        self._manifest_valid: bool = False
+        self._integrity_errors: list[str] = []
+        self._raw_metadata: Optional[dict] = None
 
     def load(self) -> None:
         """Load all grids and metadata from cache directory."""
         try:
+            self._load_manifest()
             self._load_grids()
             self._load_metadata()
             self._load_science_targets()
@@ -45,10 +52,50 @@ class DataService:
             self._detect_data_mode()
             self._loaded = True
             logger.info(f"DataService loaded: mode={self._data_mode}, "
-                       f"grid={self._elevation.shape}")
+                       f"grid={self._elevation.shape}, manifest={self._manifest_id}")
         except Exception as e:
             logger.error(f"DataService load failed: {e}")
             raise
+
+    def _load_manifest(self) -> None:
+        """Load and verify data manifest SHA-256 hashes."""
+        manifest_path = self.cache_dir / "data_manifest.json"
+        if not manifest_path.exists():
+            self._manifest = None
+            self._manifest_id = None
+            self._manifest_valid = False
+            logger.warning("No data_manifest.json found; cache integrity cannot be verified.")
+            return
+
+        try:
+            self._manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self._manifest_id = self._manifest.get("manifest_id")
+            files_spec = self._manifest.get("files", {})
+            self._integrity_errors = []
+
+            for filename, spec in files_spec.items():
+                fpath = self.cache_dir / filename
+                if not fpath.exists():
+                    self._integrity_errors.append(f"Missing file: {filename}")
+                    continue
+                expected_sha = spec.get("sha256")
+                if expected_sha:
+                    actual_sha = hashlib.sha256(fpath.read_bytes()).hexdigest()
+                    if actual_sha != expected_sha:
+                        self._integrity_errors.append(
+                            f"Hash mismatch on {filename}: expected {expected_sha[:8]}, got {actual_sha[:8]}"
+                        )
+
+            if self._integrity_errors:
+                self._manifest_valid = False
+                logger.error(f"Manifest integrity verification failed: {self._integrity_errors}")
+            else:
+                self._manifest_valid = True
+                logger.info(f"Manifest integrity verified: {self._manifest_id}")
+        except Exception as exc:
+            self._manifest_valid = False
+            self._integrity_errors.append(str(exc))
+            logger.error(f"Failed to read/verify data_manifest.json: {exc}")
 
     def _load_grids(self) -> None:
         required = ["elevation", "slope", "traversability", "hazard", "science_value"]
@@ -87,6 +134,15 @@ class DataService:
                 self._terrain_classes = json.loads(tc_path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"Could not read terrain_classes.json: {e}")
+
+        # Ingested NASA Perseverance MEDA observations
+        self._meda_environment: dict = {}
+        meda_path = self.cache_dir / "meda_environment.json"
+        if meda_path.exists():
+            try:
+                self._meda_environment = json.loads(meda_path.read_text(encoding="utf-8"))
+            except Exception as e:
+                logger.warning(f"Could not read meda_environment.json: {e}")
 
     def _load_metadata(self) -> None:
         path = self.cache_dir / "grid_metadata.json"
@@ -131,18 +187,23 @@ class DataService:
 
     def _detect_data_mode(self) -> None:
         """
-        Determine data mode from the authoritative value in grid_metadata.json.
+        Determine data mode from authoritative metadata and manifest integrity.
 
-        That value is computed by backend.utils.provenance.ProvenanceRegistry,
-        which requires BOTH that no source is synthetic AND that at least two
-        distinct NASA missions contributed — the challenge contract makes
-        multi-mission integration mandatory, not optional.
+        VERIFIED_SNAPSHOT requires:
+        1. Manifest verification passed without hash mismatches or missing required files.
+        2. Authoritative declaration in grid_metadata.json (or provenance registry) is VERIFIED_SNAPSHOT.
+        3. No synthetic sources.
 
-        This previously inferred the mode with `any(not startswith("SYNTHETIC"))`,
-        which meant a single real product among synthetic ones was enough to
-        advertise VERIFIED_SNAPSHOT. The fallback below keeps that tolerance for
-        legacy caches but demands *every* source be real, not just one.
+        If manifest validation fails, the mode degrades to DEMONSTRATION.
         """
+        if not self._manifest_valid:
+            logger.warning(
+                f"Cache manifest integrity not verified ({self._integrity_errors}); "
+                "degrading to DEMONSTRATION mode."
+            )
+            self._data_mode = DataMode.DEMONSTRATION
+            return
+
         meta_path = self.cache_dir / "grid_metadata.json"
         if meta_path.exists():
             try:
@@ -167,6 +228,18 @@ class DataService:
         )
 
     # ── Public accessors ──────────────────────────────────────────────────────
+
+    @property
+    def manifest_id(self) -> Optional[str]:
+        return self._manifest_id
+
+    @property
+    def manifest_valid(self) -> bool:
+        return self._manifest_valid
+
+    @property
+    def integrity_errors(self) -> list[str]:
+        return list(self._integrity_errors)
 
     @property
     def metadata(self) -> GridMetadata:
@@ -206,6 +279,12 @@ class DataService:
     def get_slope(self, lat: float, lon: float) -> float:
         return self.get_value_at(self._slope, lat, lon)
 
+    def get_thermal_proxy(self, lat: float, lon: float) -> Optional[float]:
+        grid = self.optional_grid("thermal_proxy")
+        if grid is not None:
+            return self.get_value_at(grid, lat, lon)
+        return None
+
     def get_science_targets(self) -> list[ScienceTarget]:
         return self._science_targets
 
@@ -239,6 +318,11 @@ class DataService:
     def terrain_classes(self) -> dict:
         """Terrain archetype metadata from the unsupervised classifier."""
         return getattr(self, "_terrain_classes", {})
+
+    @property
+    def meda_environment(self) -> dict:
+        """NASA Perseverance MEDA atmospheric and climate observations for Jezero."""
+        return getattr(self, "_meda_environment", {})
 
     def terrain_class_at(self, lat: float, lon: float) -> Optional[dict]:
         """Terrain archetype for a location, or None if unclassified.

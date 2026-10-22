@@ -18,7 +18,7 @@ import { withAlpha } from '@/utils/color';
 
 interface LayerControlProps {
   layers: ActiveLayer[];
-  onChange: (layers: ActiveLayer[]) => void;
+  onChange: (_layers: ActiveLayer[]) => void;
 }
 
 /** Swatch colour per layer id. Unknown ids fall back to the accent token. */

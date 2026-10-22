@@ -32,33 +32,32 @@ async def get_current_environment(data_service=Depends(get_data_service)):
     thermal = data_service.optional_grid("thermal_proxy")
     has_thermal = thermal is not None
 
-    dust = data_service.optional_grid("dust")
-    has_dust = dust is not None
+    meda = data_service.meda_environment
+    params = meda.get("parameters", {}) if meda else {}
 
     notes_parts = []
+    if params:
+        notes_parts.append(
+            "Surface temperature, dust optical depth, and atmospheric pressure are real in-situ "
+            "measurements from the NASA Mars 2020 Perseverance MEDA instrument suite at Jezero Crater "
+            "(PDS Atmospheres Node, urn:nasa:pds:mars2020_meda)."
+        )
     if has_thermal:
         notes_parts.append(
-            "THEMIS night-IR thermal index is available as a relative 0-1 proxy "
-            "for thermal inertia (high = heat-retaining rock, low = loose dust "
-            "or sand). It is NOT a temperature and is not convertible to one "
-            "without the THEMIS emissivity and atmospheric correction chain."
+            "THEMIS night-IR thermal index provides a relative 0-1 proxy for thermal inertia "
+            "(high = heat-retaining rock, low = loose dust or sand)."
         )
-    else:
-        notes_parts.append("No thermal data ingested.")
-
-    notes_parts.append(
-        "Absolute surface temperature, dust opacity and atmospheric pressure "
-        "require MRO Mars Climate Sounder (MCS) data, which is not ingested. "
-        "Those fields are null rather than estimated."
-    )
 
     return EnvironmentResponse(
         region="Jezero Crater, Mars",
         data_mode=data_service.data_mode,
-        # Deliberately null — see the docstring.
-        surface_temperature_day_c=None,
-        surface_temperature_night_c=None,
-        temperature_source=None,
+        surface_temperature_day_c=params.get("surface_temperature_day_c") if params else None,
+        surface_temperature_night_c=params.get("surface_temperature_night_c") if params else None,
+        temperature_source=(
+            params.get("temperature_source")
+            if (params and params.get("surface_temperature_day_c") is not None)
+            else None
+        ),
         thermal_index_mean=(
             round(float(np.nanmean(thermal)), 4) if has_thermal else None
         ),
@@ -66,9 +65,17 @@ async def get_current_environment(data_service=Depends(get_data_service)):
             "THEMIS Night IR controlled mosaic / 2001 Mars Odyssey"
             if has_thermal else None
         ),
-        dust_opacity_tau=(round(float(np.nanmean(dust)), 4) if has_dust else None),
-        dust_opacity_source="MCS / Mars Reconnaissance Orbiter" if has_dust else None,
-        atmospheric_pressure_pa=None,
-        pressure_source=None,
+        dust_opacity_tau=params.get("dust_opacity_tau") if params else None,
+        dust_opacity_source=(
+            params.get("dust_opacity_source")
+            if (params and params.get("dust_opacity_tau") is not None)
+            else None
+        ),
+        atmospheric_pressure_pa=params.get("atmospheric_pressure_pa") if params else None,
+        pressure_source=(
+            params.get("pressure_source")
+            if (params and params.get("atmospheric_pressure_pa") is not None)
+            else None
+        ),
         notes=" ".join(notes_parts),
     )

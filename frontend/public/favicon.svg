@@ -1,0 +1,72 @@
+<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Aerospace Titanium Crease -->
+    <linearGradient id="ti-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#CBD5E1" />
+    </linearGradient>
+    <linearGradient id="ti-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#94A3B8" />
+      <stop offset="100%" stop-color="#64748B" />
+    </linearGradient>
+
+    <!-- Electric Cyan Vector Crease -->
+    <linearGradient id="cyan-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7DD3FC" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="cyan-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#0B3D91" />
+    </linearGradient>
+
+    <!-- Mars Red Horizon Arc -->
+    <linearGradient id="mars-horizon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#B91C1C" />
+      <stop offset="50%" stop-color="#EF4444" />
+      <stop offset="100%" stop-color="#B91C1C" />
+    </linearGradient>
+
+    <!-- Celestial Gold Star -->
+    <linearGradient id="star-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <!-- Deep Space Background -->
+    <radialGradient id="space-bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#060913" />
+    </radialGradient>
+  </defs>
+
+  <!-- Circular Badge Frame -->
+  <circle cx="50" cy="50" r="46" fill="url(#space-bg)" stroke="#94A3B8" stroke-width="2" />
+  <circle cx="50" cy="50" r="44" stroke="#1E293B" stroke-width="0.75" />
+
+  <!-- Lower Martian Terrain under Horizon -->
+  <path d="M 8 64 Q 50 48 92 64 A 46 46 0 0 1 8 64 Z" fill="#7F1D1D" />
+  <!-- Topographic Elevation Contours -->
+  <path d="M 14 70 Q 50 56 86 70" stroke="#B91C1C" stroke-width="0.75" fill="none" opacity="0.6" />
+  <path d="M 22 77 Q 50 64 78 77" stroke="#B91C1C" stroke-width="0.75" fill="none" opacity="0.5" />
+  <path d="M 30 84 Q 50 72 70 84" stroke="#B91C1C" stroke-width="0.75" fill="none" opacity="0.4" />
+
+  <!-- Mars Horizon Arc -->
+  <path d="M 8 64 Q 50 48 92 64" stroke="url(#mars-horizon)" stroke-width="4" stroke-linecap="round" fill="none" />
+
+  <!-- V Chevron: Left Wing (Titanium with Centerline Crease) -->
+  <polygon points="24,34 35,34 47,74 41,74" fill="url(#ti-light)" />
+  <polygon points="35,34 40,34 50,74 47,74" fill="url(#ti-dark)" />
+
+  <!-- V Chevron: Right Wing (Cyan Vector with Centerline Crease & Arrow) -->
+  <polygon points="50,74 53,74 71,42 63,42" fill="url(#cyan-light)" />
+  <polygon points="53,74 59,74 74,42 71,42" fill="url(#cyan-dark)" />
+  <!-- Arrowhead -->
+  <polygon points="73,42 63,40 79,24 81,44" fill="url(#cyan-light)" />
+  <polygon points="79,24 81,44 73,42" fill="url(#cyan-dark)" />
+
+  <!-- Apex Celestial Guidance Star -->
+  <polygon points="50,14 52.5,21 59,23 52.5,25 50,32 47.5,25 41,23 47.5,21" fill="url(#star-gold)" />
+  <circle cx="50" cy="23" r="1" fill="#FFFFFF" />
+</svg>

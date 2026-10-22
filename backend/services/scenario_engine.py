@@ -44,7 +44,7 @@ class ScenarioEngine:
         weight_overrides = modifications.weight_overrides or {}
 
         modified_routes = self.engine.compute_routes(
-            start, dest, mod_constraints
+            start, dest, mod_constraints, weight_overrides=weight_overrides, allow_infeasible=True
         )
 
         # Diff
@@ -85,6 +85,13 @@ class ScenarioEngine:
             f"{mod_constraints.max_slope_deg}° ({pct_change:+.0f}%). "
             f"{diverged_count} of {len(diffs)} routes significantly changed."
         )
+
+        infeasible_routes = [s for s, r in modified_routes.items() if not r.is_feasible]
+        if infeasible_routes:
+            impact_summary += (
+                f" ⚠️ {len(infeasible_routes)} modified route(s) exceed the {mod_constraints.max_eva_hours:.1f}h EVA ceiling "
+                f"with 20% life-support reserve."
+            )
 
         return ScenarioCompareResponse(
             base_computation_id=base_computation_id,

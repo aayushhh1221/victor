@@ -81,10 +81,10 @@ export default function EvidencePopup({
 
         {/* Surface material */}
         <section>
-          <p className="section-heading mb-1">Surface Material</p>
+          <p className="section-heading mb-1">Surface Material (THEMIS Proxy)</p>
           <div className="victor-panel p-2">
             <p className="text-xs" style={{ color: 'var(--text-primary)' }}>{evidence.surface_material}</p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{evidence.mineral_class}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{evidence.mineral_class} · night-IR brightness proxy</p>
           </div>
         </section>
 
@@ -193,7 +193,9 @@ export default function EvidencePopup({
                     </span>
                   </div>
                   <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{src.instrument}</p>
-                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{src.mission} · {src.resolution_m}m res.</p>
+                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    {src.mission} · {typeof src.resolution_m === 'number' ? (src.resolution_m % 1 === 0 ? src.resolution_m : src.resolution_m.toFixed(1)) : src.resolution_m}m native res.
+                  </p>
                   {src.label && (
                     <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-warning)' }}>{src.label}</p>
                   )}

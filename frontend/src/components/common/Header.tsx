@@ -5,6 +5,7 @@ import type { DataMode } from '@/types';
 import { useTheme } from '@/utils/theme';
 import { HelpCircle, Moon, Sun } from 'lucide-react';
 import NasaLogo from '@/components/common/NasaLogo';
+import VictorLogo from '@/components/common/VictorLogo';
 
 /** Full product name, used wherever the long form belongs. */
 export const PRODUCT_NAME_LONG =
@@ -13,33 +14,32 @@ export const PRODUCT_NAME_LONG =
 interface HeaderProps {
   dataMode: DataMode | null;
   activeTab: string;
-  onTabChange: (tab: string) => void;
+  onTabChange: (_tab: string) => void;
 }
 
 const TABS = [
-  { id: 'planner',     label: 'Mission Planner' },
-  { id: 'explorer',   label: 'Mars Explorer' },
-  { id: 'layers',     label: 'Data & Layers' },
-  { id: 'science',    label: 'Science Targets' },
+  { id: 'planner', label: 'Mission Planner' },
+  { id: 'explorer', label: 'Global Mars Explorer' },
+  { id: 'science', label: 'Science Opportunities' },
   { id: 'methodology', label: 'Methodology' },
-  { id: 'about',      label: 'About' },
+  { id: 'about', label: 'About' },
 ];
 
 function DataModeBadge({ mode }: { mode: DataMode | null }) {
   if (!mode) return null;
   const config: Record<DataMode, { label: string; cls: string; dot: string }> = {
     LIVE: {
-      label: 'LIVE DATA',
+      label: 'LIVE TELEMETRY',
       cls: 'badge-live',
       dot: 'var(--mode-live)',
     },
     VERIFIED_SNAPSHOT: {
-      label: 'VERIFIED DATA',
+      label: 'PDS BASELINE',
       cls: 'badge-verified',
       dot: 'var(--mode-verified)',
     },
     DEMONSTRATION: {
-      label: 'DEMO DATA',
+      label: 'SYNTHETIC DEMO',
       cls: 'badge-demonstration',
       dot: 'var(--mode-demo)',
     },
@@ -50,10 +50,10 @@ function DataModeBadge({ mode }: { mode: DataMode | null }) {
       className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium ${c.cls}`}
       title={
         mode === 'DEMONSTRATION'
-          ? 'Running on synthetic demonstration data — not real NASA observations'
+          ? 'Synthetic terrain simulation — non-observational'
           : mode === 'VERIFIED_SNAPSHOT'
-          ? 'Using pre-downloaded, verified NASA instrument data'
-          : 'Live NASA data feed'
+          ? 'NASA Planetary Data System (PDS) archive telemetry'
+          : 'Live NASA PDS data stream'
       }
     >
       <span
@@ -77,18 +77,17 @@ export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps
       }}
     >
       {/* Logo group */}
-      <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
-        {/* Official NASA meatball */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <NasaLogo width={38} height={32} />
-          <div className="flex flex-col leading-tight" title={PRODUCT_NAME_LONG}>
-            <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
-              VICTOR
-            </span>
-            <span className="text-[9px] font-medium tracking-wider uppercase" style={{ color: 'var(--text-muted)' }}>
-              NASA Mars Exploration
-            </span>
-          </div>
+      <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
+        <NasaLogo width={36} height={30} />
+        <div className="h-5 w-px opacity-30" style={{ background: 'var(--text-muted)' }} />
+        <VictorLogo size={30} />
+        <div className="flex flex-col leading-tight" title={PRODUCT_NAME_LONG}>
+          <span className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>
+            VICTOR
+          </span>
+          <span className="text-[9px] font-medium tracking-wider uppercase" style={{ color: 'var(--text-muted)' }}>
+            NASA Space Apps · Traverse Intelligence
+          </span>
         </div>
       </div>
 

@@ -70,3 +70,13 @@ class TestScienceEngine:
         assert len(text) > 20
         assert "route adds" in text
         assert "higher science value" in text
+
+    def test_science_profile_populates_mola_elevation(self, sample_data, sample_routes):
+        """compute_route_science_profile populates authentic MOLA elevation when data_service is supplied."""
+        route = sample_routes["BALANCED"]
+        profile_resp = compute_route_science_profile(route, "comp-01", "BALANCED", data_service=sample_data)
+        elevations = [p.elevation_m for p in profile_resp.profile]
+        assert all(e is not None for e in elevations), "All waypoints must have sampled MOLA elevation"
+        # Jezero crater floor elevation is well below Martian datum (-2500m to -2000m)
+        assert all(e < -1500 for e in elevations), "Jezero elevations must be negative MOLA datum"
+

@@ -29,7 +29,7 @@ def _point_to_segment_dist_m(
 def get_nearby_targets(
     route: Route,
     all_targets: list[ScienceTarget],
-    radius_m: float = 500.0,
+    radius_m: float = 1000.0,
     walking_speed_kmh: float = 3.0,
 ) -> list[ScienceTarget]:
     """
@@ -64,17 +64,27 @@ def compute_route_science_profile(
     route: Route,
     computation_id: str,
     strategy: str,
+    data_service: Optional[DataService] = None,
 ) -> ScienceProfileResponse:
-    """Generate per-segment science profile for charting."""
+    """Generate per-segment science profile for charting, including sampled MOLA datum elevation."""
     profile: list[ScienceProfilePoint] = []
     cumulative_km = 0.0
 
     for seg in route.segments:
         cumulative_km += seg.distance_m / 1000.0
+        elevation_m = None
+        if data_service is not None and getattr(data_service, "is_loaded", lambda: False)():
+            try:
+                r, c = data_service.latlon_to_grid(seg.end.lat, seg.end.lon)
+                elevation_m = round(float(data_service.elevation[r, c]), 1)
+            except Exception:
+                elevation_m = None
+
         profile.append(ScienceProfilePoint(
             distance_km=round(cumulative_km, 3),
             science_value=round(seg.science_value, 4),
             hazard_score=round(seg.hazard_score, 3),
+            elevation_m=elevation_m,
         ))
 
     sci_values = [p.science_value for p in profile]
