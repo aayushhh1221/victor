@@ -9,8 +9,7 @@
    never by string-concatenating a hex alpha pair onto a var() reference.
    ─────────────────────────────────────────────────────────────────────────── */
 
-/* ── Light theme (default / reference.png target) ──────────────────────── */
-:root,
+/* ── Light theme ─────────────────────────────────────────────────────────── */
 :root[data-theme="light"] {
   /* Surfaces */
   --surface:           #FFFFFF;
@@ -108,13 +107,14 @@
   --chart-text:  #6B7E96;
 }
 
-/* ── Dark theme ─────────────────────────────────────────────────────────── */
+/* ── Dark theme (Default Space Mission Control) ──────────────────────────── */
+:root,
 :root[data-theme="dark"] {
   /* Surfaces */
-  --surface:           #0B1929;
-  --surface-raised:    #0D1F33;
-  --surface-sunken:    #07101C;
-  --surface-overlay:   rgba(11, 25, 41, 0.95);
+  --surface:           #070E18;
+  --surface-raised:    #0D1A2D;
+  --surface-sunken:    #040810;
+  --surface-overlay:   rgba(9, 19, 34, 0.95);
 
   /* Borders */
   --border:            rgba(255, 255, 255, 0.08);

@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { DataMode } from '@/types';
 import { useTheme } from '@/utils/theme';
 import { HelpCircle, Moon, Sun } from 'lucide-react';
@@ -12,20 +14,20 @@ export const PRODUCT_NAME_LONG =
   'VICTOR — Voyage Intelligence for Terrain-aware Cartographic Optimization & Routing';
 
 interface HeaderProps {
-  dataMode: DataMode | null;
-  activeTab: string;
-  onTabChange: (_tab: string) => void;
+  dataMode?: DataMode | null;
+  activeTab?: string;
+  onTabChange?: (_tab: string) => void;
 }
 
-const TABS = [
-  { id: 'planner', label: 'Mission Planner' },
-  { id: 'explorer', label: 'Global Mars Explorer' },
-  { id: 'science', label: 'Science Opportunities' },
-  { id: 'methodology', label: 'Methodology' },
-  { id: 'about', label: 'About' },
+const NAV_LINKS = [
+  { href: '/planner', id: 'planner', label: 'Mission Planner' },
+  { href: '/explorer', id: 'explorer', label: 'Global Mars Explorer' },
+  { href: '/methodology', id: 'methodology', label: 'Methodology' },
+  { href: '/data', id: 'data', label: 'NASA Data Catalog' },
+  { href: '/about', id: 'about', label: 'About & Charter' },
 ];
 
-function DataModeBadge({ mode }: { mode: DataMode | null }) {
+function DataModeBadge({ mode }: { mode?: DataMode | null }) {
   if (!mode) return null;
   const config: Record<DataMode, { label: string; cls: string; dot: string }> = {
     LIVE: {
@@ -67,6 +69,7 @@ function DataModeBadge({ mode }: { mode: DataMode | null }) {
 
 export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps) {
   const { theme, toggle } = useTheme();
+  const pathname = usePathname();
 
   return (
     <header
@@ -77,7 +80,7 @@ export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps
       }}
     >
       {/* Logo group */}
-      <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
+      <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 min-w-0 transition-opacity hover:opacity-90">
         <NasaLogo width={36} height={30} />
         <div className="h-5 w-px opacity-30" style={{ background: 'var(--text-muted)' }} />
         <VictorLogo size={30} />
@@ -89,25 +92,36 @@ export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps
             NASA Space Apps · Traverse Intelligence
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* Nav tabs — center */}
       <nav className="flex items-center gap-0.5 flex-shrink-0 border-b-0 h-14 overflow-x-auto">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            id={`nav-tab-${tab.id}`}
-            onClick={() => onTabChange(tab.id)}
-            className={`header-tab whitespace-nowrap ${activeTab === tab.id ? 'active' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {NAV_LINKS.map((link) => {
+          const isCurrentRoute = pathname === link.href;
+          const isCurrentTab = activeTab === link.id;
+          const isActive = isCurrentRoute || (pathname === '/planner' && isCurrentTab);
+
+          return (
+            <Link
+              key={link.id}
+              id={`nav-tab-${link.id}`}
+              href={link.href}
+              onClick={(_e) => {
+                if (onTabChange && pathname === '/planner' && link.href === '/planner') {
+                  onTabChange(link.id);
+                }
+              }}
+              className={`header-tab whitespace-nowrap ${isActive ? 'active' : ''}`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* Right actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <DataModeBadge mode={dataMode} />
+        <DataModeBadge mode={dataMode || 'VERIFIED_SNAPSHOT'} />
 
         {/* Theme toggle */}
         <button
@@ -123,18 +137,19 @@ export default function Header({ dataMode, activeTab, onTabChange }: HeaderProps
           {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
         </button>
 
-        {/* Help — opens the Methodology view, which documents how routes are computed */}
-        <button
+        {/* Help — opens Methodology */}
+        <Link
           id="nav-help"
-          onClick={() => onTabChange('methodology')}
+          href="/methodology"
           className="w-8 h-8 flex items-center justify-center rounded transition-colors"
           style={{ color: 'var(--text-muted)' }}
           aria-label="Help: open Methodology"
           title="How VICTOR computes routes (Methodology)"
         >
           <HelpCircle size={16} />
-        </button>
+        </Link>
       </div>
     </header>
   );
 }
+

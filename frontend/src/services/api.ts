@@ -246,4 +246,37 @@ export function getPdfReportUrl(
   return `${API_BASE}/api/v1/report/pdf/${encodeURIComponent(computationId)}?${params}`;
 }
 
+/**
+ * URL of the standard RFC 7946 GeoJSON route export.
+ *
+ * Compatible with QGIS, ArcGIS, Google Earth, and web GIS viewers.
+ */
+export function getGeoJsonReportUrl(
+  computationId: string,
+  strategy?: ReportStrategy | string,
+): string {
+  const params = new URLSearchParams();
+  if (strategy && strategy !== 'ALL') {
+    params.set('strategy', strategy);
+  }
+  const qs = params.toString() ? `?${params}` : '';
+  return `${API_BASE}/api/v1/routes/${encodeURIComponent(computationId)}/geojson${qs}`;
+}
+
+export interface RoutePresetItem {
+  id: string;
+  name: string;
+  type: string;
+  desc: string;
+  start: { lat: number; lon: number };
+  destination: { lat: number; lon: number };
+  historical_context?: string;
+}
+
+/** Fetch authoritative traverse presets from backend. */
+export async function getRoutePresets(): Promise<RoutePresetItem[]> {
+  return fetchJson<RoutePresetItem[]>('/api/v1/routes/presets');
+}
+
 export { ApiError };
+

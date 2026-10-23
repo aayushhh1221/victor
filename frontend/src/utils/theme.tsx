@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 type Theme = 'light' | 'dark';
 
 /** localStorage key holding the user's explicit theme choice. */
-export const THEME_STORAGE_KEY = 'victor-theme';
+export const THEME_STORAGE_KEY = 'victor_mission_theme_v3';
 
 interface ThemeContextValue {
   theme: Theme;
@@ -13,18 +13,23 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'light',
+  theme: 'dark',
   toggle: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    // Read from localStorage first, fall back to system preference
+    // Purge legacy light mode key if present from prior sessions
+    try {
+      if (localStorage.getItem('victor-theme') === 'light') {
+        localStorage.removeItem('victor-theme');
+      }
+    } catch {}
+
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-    const system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    const initial = stored ?? system;
+    const initial = stored ?? 'dark';
     setTheme(initial);
     document.documentElement.setAttribute('data-theme', initial);
   }, []);

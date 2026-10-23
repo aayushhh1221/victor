@@ -485,6 +485,20 @@ export default function PlannerPage() {
     [triggerCompute, constraints],
   );
 
+  // Sync initial preset from URL query params (e.g. /planner?preset=kodiak)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const presetParam = params.get('preset');
+      if (presetParam) {
+        const found = MISSION_PRESETS.find((p) => p.id === presetParam);
+        if (found) {
+          handleSelectPreset(found);
+        }
+      }
+    }
+  }, [handleSelectPreset]);
+
   const handleSegmentClick = useCallback(
     async (strategy: RouteStrategy, segmentId: number) => {
       if (!routeResult) return;

@@ -5,7 +5,7 @@ import logging
 import uuid
 from pathlib import Path
 from typing import Annotated
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Response
 from ..models.schemas import (
     RouteComputeRequest, RouteComputeResponse,
     RouteComputeComparison, RouteRangeSummary, SegmentEvidenceResponse
@@ -227,6 +227,145 @@ async def get_demo_routes(data_service=Depends(get_data_service)):
     return response
 
 
-def get_computation_store() -> dict:
-    """Expose computation store for scenario engine."""
-    return _computation_store
+@router.get("/presets")
+async def get_route_presets():
+    """Return authoritative historical traverse presets for Jezero Crater."""
+    return [
+        {
+            "id": "seitah-delta",
+            "name": "Séítah → Ancient Delta",
+            "type": "Historic Traverse",
+            "desc": "Perseverance landing site traverse across crater floor toward river delta (4.2 km).",
+            "start": {"lat": 18.4447, "lon": 77.4508},
+            "destination": {"lat": 18.4812, "lon": 77.2415},
+            "historical_context": "Traverses the rugged olivine-bearing Séítah formation toward the Hawksbill Gap sedimentary delta fan.",
+        },
+        {
+            "id": "crater-floor-fan",
+            "name": "Crater Floor → Delta Fan",
+            "type": "Sedimentary Stratigraphy",
+            "desc": "Traverse across basaltic sands to Hawksbill Gap layered delta deposits (3.1 km).",
+            "start": {"lat": 18.4320, "lon": 77.4250},
+            "destination": {"lat": 18.4610, "lon": 77.3300},
+            "historical_context": "Crosses the low-albedo crater floor to inspect mudstone and clay layers preserving biosignature potential.",
+        },
+        {
+            "id": "three-forks-margin",
+            "name": "Three Forks → Margin Unit",
+            "type": "Carbonate Exploration",
+            "desc": "Sample cache depot route ascending to carbonate-bearing rim margin (3.8 km).",
+            "start": {"lat": 18.4520, "lon": 77.3520},
+            "destination": {"lat": 18.4980, "lon": 77.2400},
+            "historical_context": "Ascends from the Three Forks sample cache depot to the high-priority carbonate margin unit at the crater rim.",
+        },
+        {
+            "id": "kodiak-rim",
+            "name": "Kodiak Butte Pass → Crater Rim",
+            "type": "Geomorphology Scouting",
+            "desc": "Geological scouting mission toward Jezero crater northern rim (3.4 km).",
+            "start": {"lat": 18.4400, "lon": 77.3850},
+            "destination": {"lat": 18.4900, "lon": 77.3600},
+            "historical_context": "Examines the Kodiak isolated butte delta remnant before ascending the steep ejecta slopes of the northern rim.",
+        },
+    ]
+
+
+@router.get("/{computation_id}/geojson")
+async def export_routes_geojson(
+    computation_id: str,
+    strategy: str | None = None,
+    data_service=Depends(get_data_service),
+):
+    """Export computed routes as standard RFC 7946 GeoJSON FeatureCollection.
+
+    Compatible with QGIS, ArcGIS, Google Earth, Cesium, and standard GIS tools.
+    Coordinates are formatted as [longitude, latitude, elevation_m] in IAU2000 Mars frame.
+    """
+    stored = _computation_store.get(computation_id)
+    if not stored:
+        raise HTTPException(status_code=404, detail="Computation not found")
+
+    response: RouteComputeResponse = stored["response"]
+    strategies = response.strategies
+
+    # Filter by strategy if requested
+    if strategy and strategy.upper() != "ALL":
+        strat_key = strategy.upper()
+        if strat_key not in strategies:
+            raise HTTPException(status_code=404, detail=f"Strategy '{strategy}' not found in computation")
+        target_strats = {strat_key: strategies[strat_key]}
+    else:
+        target_strats = strategies
+
+    features = []
+    strat_colors = {
+        "SAFEST": "#16A34A",
+        "FASTEST": "#2563EB",
+        "SCIENCE_RICHEST": "#D97706",
+        "BALANCED": "#7C3AED",
+    }
+
+    for strat_name, route in target_strats.items():
+        coords_3d = []
+        for pt in route.path:
+            elev = float(data_service.get_elevation(pt.lat, pt.lon))
+            coords_3d.append([round(pt.lon, 6), round(pt.lat, 6), round(elev, 1)])
+
+        features.append({
+            "type": "Feature",
+            "id": f"{computation_id}_{strat_name}",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": coords_3d,
+            },
+            "properties": {
+                "strategy": strat_name,
+                "computation_id": computation_id,
+                "total_distance_km": round(route.metrics.distance_km, 3),
+                "estimated_duration_hours": round(route.metrics.estimated_time_hours, 2),
+                "required_eva_with_reserve_hours": round(
+                    route.metrics.required_eva_time_with_reserve_hours or (route.metrics.estimated_time_hours * 1.2), 2
+                ),
+                "max_slope_deg": round(route.metrics.max_slope_deg, 1),
+                "avg_hazard_score": round(route.metrics.avg_hazard_score, 2),
+                "avg_science_value": round(route.metrics.avg_science_value, 3),
+                "elevation_gain_m": round(route.metrics.elevation_gain_m, 1),
+                "elevation_loss_m": round(route.metrics.elevation_loss_m, 1),
+                "segments_count": len(route.segments),
+                "is_feasible": route.is_feasible,
+                "pareto_status": route.pareto_status.value if hasattr(route.pareto_status, "value") else str(route.pareto_status),
+                "confidence": route.metrics.confidence.value if hasattr(route.metrics.confidence, "value") else str(route.metrics.confidence),
+                "stroke": strat_colors.get(strat_name, "#1565C0"),
+                "stroke-width": 4,
+            },
+        })
+
+    geojson_doc = {
+        "type": "FeatureCollection",
+        "name": f"VICTOR_Traverse_{computation_id[:8]}",
+        "crs": {
+            "type": "name",
+            "properties": {
+                "name": "urn:ogc:def:crs:OGC:1.3:CRS84",
+                "datum": "IAU2000_Mars",
+            },
+        },
+        "properties": {
+            "generator": "NASA Space Apps 2026 - Project VICTOR Cartographic Engine",
+            "study_region": "Jezero Crater, Mars (18.0N-18.9N, 77.0E-78.0E)",
+            "pds_provenance": "NASA PDS Multi-Mission Baseline (MGS MOLA, Odyssey THEMIS, MRO CTX, Mars 2020 MEDA)",
+            "computation_id": computation_id,
+        },
+        "features": features,
+    }
+
+    filename = f"VICTOR_Traverse_{computation_id[:8]}.geojson"
+    return Response(
+        content=json.dumps(geojson_doc, indent=2),
+        media_type="application/geo+json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "application/geo+json",
+        },
+    )
+

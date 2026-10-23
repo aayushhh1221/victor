@@ -3,8 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BriefingResponse, RouteComputeResponse, RouteStrategy, ReportStrategy } from '@/types';
 import { STRATEGY_META } from '@/types';
-import { getBriefing, getReportUrl, getPdfReportUrl } from '@/services/api';
-import { AlertTriangle, Cpu, Download, ExternalLink, FileText, RefreshCw, FileCheck } from 'lucide-react';
+import { getBriefing, getReportUrl, getPdfReportUrl, getGeoJsonReportUrl } from '@/services/api';
+import { AlertTriangle, Cpu, Download, ExternalLink, FileText, RefreshCw, FileCheck, Compass } from 'lucide-react';
+
 import { withAlpha } from '@/utils/color';
 import Markdown from '@/utils/markdown';
 
@@ -272,6 +273,21 @@ export default function MissionReportView({
               >
                 <Download size={13} />
                 Download HTML
+              </a>
+              <a
+                id="btn-export-geojson"
+                href={computationId ? getGeoJsonReportUrl(computationId, strategy || 'ALL') : '#'}
+                download={computationId ? `VICTOR_${strategy || 'ALL'}_${computationId.slice(0, 8)}.geojson` : 'traverse.geojson'}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:brightness-110"
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-strong)',
+                  color: 'var(--text-primary)',
+                }}
+                title="Download standard RFC 7946 GeoJSON format for QGIS, ArcGIS, or Google Earth."
+              >
+                <Compass size={13} />
+                Export GeoJSON
               </a>
               <span className="text-[10px] leading-snug w-full sm:w-auto mt-1 sm:mt-0" style={{ color: 'var(--text-muted)' }}>
                 Technical Memorandum format &middot; Includes multi-mission PDS provenance, Pareto analysis &amp; consumables reserve.

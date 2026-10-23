@@ -234,3 +234,36 @@ class TestApiSafetyEndpoints:
         assert "attachment" in resp.headers["content-disposition"]
         assert resp.content.startswith(b"%PDF-")
         assert len(resp.content) > 5000
+
+    def test_route_presets_endpoint(self, api_client):
+        """Presets endpoint must return authoritative Jezero traverse presets."""
+        resp = api_client.get("/api/v1/routes/presets")
+        assert resp.status_code == 200
+        presets = resp.json()
+        assert len(presets) == 4
+        assert presets[0]["id"] == "seitah-delta"
+        for p in presets:
+            assert "start" in p and "destination" in p
+            assert 18.0 <= p["start"]["lat"] <= 18.9
+            assert 77.0 <= p["start"]["lon"] <= 78.0
+
+    def test_geojson_route_export(self, api_client):
+        """GeoJSON route export must return valid RFC 7946 FeatureCollection."""
+        api_client.get("/api/v1/routes/demo")
+        resp = api_client.get("/api/v1/routes/demo-jezero-001/geojson?strategy=BALANCED")
+        assert resp.status_code == 200
+        assert "geo+json" in resp.headers["content-type"]
+        assert "attachment" in resp.headers["content-disposition"]
+        data = resp.json()
+        assert data["type"] == "FeatureCollection"
+        assert len(data["features"]) == 1
+        feat = data["features"][0]
+        assert feat["geometry"]["type"] == "LineString"
+        assert len(feat["geometry"]["coordinates"]) >= 2
+        # Check coordinates are [lon, lat, elev]
+        lon, lat, elev = feat["geometry"]["coordinates"][0]
+        assert 77.0 <= lon <= 78.0
+        assert 18.0 <= lat <= 18.9
+        assert isinstance(elev, (int, float))
+        assert feat["properties"]["strategy"] == "BALANCED"
+
