@@ -1,25 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Header from '@/components/common/Header';
+import InfoBar from '@/components/common/InfoBar';
 import VictorLogo from '@/components/common/VictorLogo';
 import type { CorridorData } from '@/components/home/HeroReconMap';
+import type { RegionInfo, EnvironmentResponse } from '@/types';
+import { getRegion, getEnvironment } from '@/services/api';
 import {
   ArrowRight, ShieldCheck, Zap, Globe, Database,
   BookOpen, Award, Scale, Sparkles, Radio,
-  ChevronRight, Activity
+  ChevronRight, Activity, ExternalLink, MapPin
 } from 'lucide-react';
 
 // Dynamic import for Leaflet-based Hero Satellite Reconnaissance Map (SSR unsafe)
 const HeroReconMap = dynamic(() => import('@/components/home/HeroReconMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[380px] sm:h-[440px] rounded-2xl border border-white/10 bg-[#06090F] flex flex-col items-center justify-center font-mono text-xs text-slate-400 gap-3 shadow-2xl">
+    <div className="w-full h-[440px] rounded-2xl border border-white/10 bg-[#06090F] flex flex-col items-center justify-center font-mono text-xs text-slate-400 gap-3 shadow-2xl">
       <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
       <span className="tracking-widest uppercase text-[11px] text-cyan-300">
-        Initializing MRO CTX Satellite Reconnaissance Stream...
+        INITIALIZING MRO CTX SATELLITE RECONNAISSANCE STREAM...
       </span>
     </div>
   ),
@@ -157,570 +160,505 @@ const PDS_INSTRUMENTS = [
 
 export default function Home() {
   const [activeCorridor, setActiveCorridor] = useState<CorridorData>(CORRIDORS[0]);
+  const [region, setRegion] = useState<RegionInfo | null>(null);
+  const [environment, setEnvironment] = useState<EnvironmentResponse | null>(null);
+
+  useEffect(() => {
+    // Fetch live region & environment metadata from FastAPI backend
+    getRegion()
+      .then((r) => setRegion(r))
+      .catch(() => {
+        // Fallback snapshot metadata
+        setRegion({
+          region_name: 'Jezero Crater, Mars',
+          name: 'Jezero Crater',
+          lat_min: 18.0,
+          lat_max: 18.9,
+          lon_min: 77.0,
+          lon_max: 78.0,
+          lat: 18.45,
+          lon: 77.5,
+          elevation_m: -2277.0,
+          elevation_min_m: -2874.0,
+          elevation_max_m: -1466.0,
+          elevation_source: 'MOLA/MGS',
+          terrain_type: 'Crater Floor / Delta',
+          terrain_subtype: 'Deltaic, sedimentary, olivine-bearing (Séítah)',
+          region_description: 'Jezero Crater, Mars 2020 Perseverance landing site.',
+          grid_rows: 300,
+          grid_cols: 300,
+          cell_size_ns_m: 177.5,
+          cell_size_ew_m: 187.1,
+          cell_shape: 'non-square',
+          region_ns_km: 53.25,
+          region_ew_km: 56.13,
+          coordinate_system: 'IAU2000 planetocentric',
+          data_mode: 'VERIFIED_SNAPSHOT',
+          compliance: null,
+          available_layers: ['imagery', 'terrain', 'elevation'],
+          provenance: [],
+        });
+      });
+
+    getEnvironment()
+      .then((e) => setEnvironment(e))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#06090F] text-[#E8EDF3] antialiased selection:bg-blue-600 selection:text-white">
-      {/* Global Shared Header */}
+      {/* Top Global Shared Header (Strictly Dark Mission Control) */}
       <Header dataMode="VERIFIED_SNAPSHOT" activeTab="" />
 
-      {/* Top Telemetry Flight Ribbon */}
-      <div className="bg-[#08131E] border-b border-white/10 px-4 py-2 select-none overflow-x-auto">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 text-[11px] font-mono whitespace-nowrap">
-          <div className="flex items-center gap-3">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-slate-300 font-bold uppercase tracking-wider">
-              OPERATIONAL FLIGHT STATUS: EXTENDED SCIENCE PHASE &middot; SOL 1284
-            </span>
-            <span className="text-slate-600 hidden md:inline">|</span>
-            <span className="text-cyan-400 hidden md:inline">14:22 LMST</span>
+      {/* Authentic NASA Telemetry InfoBar Strip */}
+      <InfoBar region={region} loading={false} error={null} environment={environment} />
+
+      {/* Flight Operations Header & Action Cluster */}
+      <div className="border-b border-white/10 bg-[#08131E] px-4 py-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-mono font-bold tracking-wider text-cyan-400 uppercase">
+                MARS 2020 EXTENDED RECONNAISSANCE // JEZERO CRATER DISPATCH
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">
+              Autonomous Traverse Intelligence for{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500">
+                Martian Surface Exploration
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+              VICTOR solves the multi-objective Pareto frontier for astronaut EVA and autonomous rovers. Built upon NASA Planetary Data System observations, oblate spheroidal geodesics (3,396.2 km &times; 3,376.2 km), and anisotropic Tobler walking speeds on 0.38g gravity.
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-400">
-            <span>
-              DATUM: <strong className="text-slate-200">-2,568 m MOLA</strong>
-            </span>
-            <span>&bull;</span>
-            <span>
-              ATMOS: <strong className="text-emerald-400">745 Pa CO₂</strong>
-            </span>
-            <span>&bull;</span>
-            <span>
-              TEMP: <strong className="text-amber-400">-18.4 °C</strong>
-            </span>
-            <span>&bull;</span>
-            <span>
-              DUST: <strong className="text-slate-200">&tau; 0.42</strong>
-            </span>
-            <span className="hidden lg:inline">&bull;</span>
-            <span className="hidden lg:inline text-blue-400 font-semibold">
-              DSN GOLDSTONE [LOCK]
-            </span>
+          {/* Quick Hardware Action Links */}
+          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+            <Link
+              href={`/planner?preset=${activeCorridor.id}`}
+              className="group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md bg-blue-600 hover:bg-blue-500 text-white active:scale-98 border border-blue-400/40"
+            >
+              <span>Launch Tactical Planner</span>
+              <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />
+            </Link>
+
+            <Link
+              href="/explorer"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-semibold text-xs border border-white/10 bg-[#0D1A2D] hover:bg-[#152742] text-slate-200 hover:text-white transition-all shadow-sm"
+            >
+              <Globe size={14} className="text-cyan-400" />
+              <span>360° Mars Explorer</span>
+            </Link>
+
+            <Link
+              href="/methodology"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-semibold text-xs border border-white/10 bg-[#0D1A2D] hover:bg-[#152742] text-slate-300 hover:text-white transition-all shadow-sm"
+            >
+              <BookOpen size={14} />
+              <span>Methodology</span>
+            </Link>
+
+            <Link
+              href="/data"
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-semibold text-xs border border-white/10 bg-[#0D1A2D] hover:bg-[#152742] text-slate-300 hover:text-white transition-all shadow-sm"
+            >
+              <Database size={14} />
+              <span>NASA Catalog</span>
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Hero Section: Asymmetrical Command Console */}
-      <section className="relative border-b border-white/10 overflow-hidden bg-gradient-to-b from-[#070E18] via-[#06090F] to-[#08131E]">
-        {/* Subtle Ambient Radial Glows */}
-        <div className="absolute -top-40 left-1/4 w-[600px] h-[500px] pointer-events-none opacity-15 blur-[120px] rounded-full bg-blue-600" />
-        <div className="absolute top-1/2 right-10 w-[450px] h-[450px] pointer-events-none opacity-10 blur-[100px] rounded-full bg-cyan-500" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            {/* Left Console: Flight Operations & Tactical Entry */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Eyebrow Hardware Pill */}
-              <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full text-[11px] font-mono border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 shadow-sm backdrop-blur-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span>IAU2000 Mars Frame &middot; 18.00°–18.90°N, 77.00°–78.00°E &middot; Jezero Crater</span>
+      {/* Main Tactical Command Operations Deck (3-Column Layout Matching Planner) */}
+      <section className="px-4 sm:px-6 py-6 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Column 1: Historical Jezero Corridors Selector (Left Column) */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="p-4 rounded-2xl border border-white/10 bg-[#08131E] shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                  <Radio size={14} />
+                  <span>Traverse Corridors</span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">4 PRESETS</span>
               </div>
 
-              {/* Massive Main Heading */}
-              <div className="space-y-3">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12] text-white">
-                  Autonomous Traverse Intelligence for{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500">
-                    Martian Surface Exploration
-                  </span>
-                </h1>
-                <p className="text-sm sm:text-base leading-relaxed text-slate-300 max-w-2xl font-normal">
-                  VICTOR computes multi-objective, Pareto-optimal astronaut EVA and autonomous rover trajectories across Mars. Grounded exclusively in authentic NASA Planetary Data System (PDS) observations, incorporating oblate spheroidal geodesics, non-square raster cell geometry (177.5 m &times; 187.1 m), and anisotropic Tobler walking speeds on 0.38g gravity.
-                </p>
+              <div className="space-y-2">
+                {CORRIDORS.map((c) => {
+                  const isSelected = activeCorridor.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setActiveCorridor(c)}
+                      className={`w-full text-left p-3 rounded-xl border transition-all font-mono ${
+                        isSelected
+                          ? 'bg-blue-950/60 border-cyan-400 text-white shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                          : 'bg-[#06090F]/70 border-white/5 text-slate-400 hover:text-slate-200 hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="font-bold text-white truncate">{c.name}</span>
+                        {isSelected && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />}
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                        <span>{c.distanceKm} km</span>
+                        <span className="text-cyan-300 font-semibold">{c.evaHours} h EVA</span>
+                        <span className="text-emerald-400">Max {c.slopeMax}&deg;</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Interactive Corridor Switcher Chips */}
-              <div className="space-y-2 pt-1">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold flex items-center gap-2">
-                  <Radio size={12} className="text-cyan-400" />
-                  <span>Select Historical Jezero Traversal Corridor:</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {CORRIDORS.map((c) => {
-                    const isSelected = activeCorridor.id === c.id;
-                    return (
-                      <button
-                        key={c.id}
-                        onClick={() => setActiveCorridor(c)}
-                        className={`px-3 py-2.5 rounded-xl border text-left transition-all font-mono ${
-                          isSelected
-                            ? 'bg-blue-600/20 border-cyan-400 text-white shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                            : 'bg-[#08131E]/80 border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[10px] mb-1">
-                          <span className={isSelected ? 'text-cyan-300 font-bold' : 'text-slate-500'}>
-                            {c.distanceKm} km
-                          </span>
-                          {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />}
-                        </div>
-                        <div className="text-xs font-bold truncate text-slate-200">
-                          {c.name.split('→')[0].trim()}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Hardware Button-in-Button CTA Cluster */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="pt-2">
                 <Link
                   href={`/planner?preset=${activeCorridor.id}`}
-                  className="group inline-flex items-center gap-3 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg bg-blue-600 hover:bg-blue-500 text-white active:scale-98 border border-blue-400/40"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-blue-600 hover:bg-blue-500 text-white transition-all shadow border border-blue-400/40"
                 >
-                  <span>Launch Tactical Mission Planner</span>
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center bg-white/20 transition-transform group-hover:translate-x-1">
-                    <ArrowRight size={13} />
-                  </div>
-                </Link>
-
-                <Link
-                  href="/explorer"
-                  className="inline-flex items-center gap-2 px-4 py-3.5 rounded-xl font-semibold text-xs border border-white/10 bg-[#08131E] hover:bg-[#0D1A2D] text-slate-200 hover:text-white transition-all shadow-sm"
-                >
-                  <Globe size={15} className="text-cyan-400" />
-                  <span>360° Global Mars Explorer</span>
-                </Link>
-
-                <Link
-                  href="/methodology"
-                  className="inline-flex items-center gap-2 px-4 py-3.5 rounded-xl font-semibold text-xs border border-white/10 bg-[#08131E] hover:bg-[#0D1A2D] text-slate-300 hover:text-white transition-all shadow-sm"
-                >
-                  <BookOpen size={15} />
-                  <span>Methodology</span>
+                  <span>Plot Corridor in Planner</span>
+                  <ExternalLink size={13} />
                 </Link>
               </div>
-
-              {/* Live In-Situ Telemetry Bar (6 Double-Bezel Gauges) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl border border-white/10 bg-[#08131E]/80 backdrop-blur-md font-mono text-xs shadow-inner">
-                <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase block text-slate-400">Areoid Datum Elevation</span>
-                  <span className="font-bold text-sm text-slate-200">-2,568 m</span>
-                  <span className="text-[10px] block text-slate-500">MGS MOLA Altimetry</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase block text-slate-400">Surface Pressure</span>
-                  <span className="font-bold text-sm text-emerald-400">745 Pa CO₂</span>
-                  <span className="text-[10px] block text-slate-500">MEDA Transducer</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase block text-slate-400">Sol Mean Temp</span>
-                  <span className="font-bold text-sm text-amber-400">-18.4 °C</span>
-                  <span className="text-[10px] block text-slate-500">-88°C to -14°C Diurnal</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase block text-slate-400">Dust Opacity (&tau;)</span>
-                  <span className="font-bold text-sm text-slate-200">0.42 (Nominal)</span>
-                  <span className="text-[10px] block text-slate-500">MEDA Optical Sensor</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase block text-slate-400">Extraterrestrial Gravity</span>
-                  <span className="font-bold text-sm text-cyan-400">0.38 g</span>
-                  <span className="text-[10px] block text-slate-500">3.720 m/s² Acceleration</span>
-                </div>
-                <div className="p-2 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase block text-slate-400">Grid Cell Metric</span>
-                  <span className="font-bold text-sm text-slate-200">177.5 &times; 187.1 m</span>
-                  <span className="text-[10px] block text-slate-500">Non-Square IAU2000</span>
-                </div>
-              </div>
             </div>
 
-            {/* Right Console: Live Tactical Jezero Satellite Reconnaissance Station */}
-            <div className="lg:col-span-5">
-              <HeroReconMap activeCorridor={activeCorridor} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Traversal Corridors Showcase (Tactical Bento Grid) */}
-      <section className="py-14 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase mb-1 text-cyan-400">
-              <Radio size={14} />
-              <span>Standard Operational Scenarios</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Documented Jezero Crater Traversal Corridors
-            </h2>
-            <p className="text-xs sm:text-sm mt-1 max-w-xl text-slate-400">
-              Select a documented geological corridor investigated by NASA&apos;s Perseverance rover to load coordinates instantly into the tactical pathfinder.
-            </p>
-          </div>
-          <Link
-            href="/planner"
-            className="text-xs font-semibold flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 hover:underline font-mono"
-          >
-            <span>Custom Coordinate Entry in Planner</span>
-            <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {CORRIDORS.map((corridor) => (
-            <Link
-              key={corridor.id}
-              href={`/planner?preset=${corridor.id}`}
-              className="p-5 rounded-2xl border border-white/10 bg-[#08131E] flex flex-col justify-between transition-all hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] group"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
-                    {corridor.category.split(' ')[0]}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-200">
-                    {corridor.distanceKm} km
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
-                    {corridor.name}
-                  </h3>
-                  <p className="text-xs mt-1.5 line-clamp-2 leading-relaxed text-slate-400">
-                    {corridor.description}
-                  </p>
-                </div>
+            {/* In-Situ Mission Constraints */}
+            <div className="p-4 rounded-2xl border border-white/10 bg-[#08131E] shadow-xl space-y-2.5 font-mono text-xs">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block border-b border-white/10 pb-1.5">
+                Active Operational Bounds
+              </span>
+              <div className="flex justify-between text-slate-300 text-[11px]">
+                <span className="text-slate-400">Max Slope Limit:</span>
+                <span className="font-bold text-amber-400">15.0&deg; (Wheel Slip)</span>
               </div>
-
-              <div className="mt-5 pt-3 border-t border-white/10 font-mono text-[11px] space-y-1.5">
-                <div className="flex justify-between text-slate-400">
-                  <span>Max Slope:</span>
-                  <span className="font-semibold text-emerald-400">{corridor.slopeMax}&deg;</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Est. EVA:</span>
-                  <span className="font-semibold text-slate-200">{corridor.evaHours} h (+20% reserve)</span>
-                </div>
-                <div className="pt-2 flex items-center justify-between font-bold text-xs text-cyan-400 group-hover:text-cyan-300">
-                  <span>Plot in Planner</span>
-                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                </div>
+              <div className="flex justify-between text-slate-300 text-[11px]">
+                <span className="text-slate-400">EVA Budget:</span>
+                <span className="font-bold text-slate-200">6.0 h (20% Reserve)</span>
               </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Topographic Cross-Section & Energy Profile Engine */}
-      <section className="py-14 px-4 sm:px-6 border-y border-white/10 bg-[#070E18]">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase mb-1 text-emerald-400">
-                <Activity size={14} />
-                <span>Anisotropic Bio-Energetic Modeling</span>
+              <div className="flex justify-between text-slate-300 text-[11px]">
+                <span className="text-slate-400">Tobler Pace:</span>
+                <span className="font-bold text-cyan-400">3.0 km/h (0.38g)</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                Elevation Cross-Section &amp; Metabolic Expenditure
-              </h2>
-              <p className="text-xs sm:text-sm mt-1 max-w-xl text-slate-400">
-                Mars gravity (0.38g) and non-square cell topology require anisotropic slope penalties. VICTOR contours gentle ridges rather than brute-forcing steep direct ascents.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
-              <span className="inline-block w-3 h-0.5 bg-cyan-400 rounded" />
-              <span>Elevation Gain</span>
-              <span className="inline-block w-3 h-0.5 bg-amber-400 rounded ml-2" />
-              <span>Terrain Difficulty</span>
+              <div className="flex justify-between text-slate-300 text-[11px]">
+                <span className="text-slate-400">Mesh Resolution:</span>
+                <span className="font-bold text-slate-200">177.5 &times; 187.1 m</span>
+              </div>
             </div>
           </div>
 
-          {/* SVG Elevation Profile Chart Card */}
-          <div className="p-6 rounded-2xl border border-white/10 bg-[#08131E] shadow-xl space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="space-y-1">
-                <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider">
-                  Profile Corridor: {activeCorridor.name}
+          {/* Column 2: Center Reconnaissance Map Viewport */}
+          <div className="lg:col-span-6 space-y-4">
+            <HeroReconMap activeCorridor={activeCorridor} />
+
+            {/* Bottom Context Details */}
+            <div className="p-3.5 rounded-xl border border-white/10 bg-[#08131E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
+              <div className="space-y-0.5 text-center sm:text-left">
+                <span className="text-[10px] uppercase text-cyan-400 font-bold block">
+                  Active Science Objective:
                 </span>
-                <p className="text-xs text-slate-400">
-                  Cumulative elevation delta [&Delta;h = +84.0 m] along traverse track ({activeCorridor.distanceKm} km total)
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  {activeCorridor.description}
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
-                Safe Envelope: 24% of 6h EVA
+              <Link
+                href={`/planner?preset=${activeCorridor.id}`}
+                className="whitespace-nowrap px-3 py-1.5 rounded-lg bg-blue-600/20 text-cyan-300 hover:text-white border border-cyan-500/30 text-[11px] font-bold flex items-center gap-1.5 hover:bg-blue-600 transition-colors"
+              >
+                <span>Full Tactical Engine</span>
+                <ChevronRight size={13} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Column 3: 4 Pareto Strategy Cards (Right Column - Matching Planner Screenshot) */}
+          <div className="lg:col-span-3 space-y-3">
+            <div className="flex items-center justify-between font-mono text-xs border-b border-white/10 pb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                <Scale size={14} className="text-cyan-400" />
+                <span>Strategy Evaluation (4)</span>
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-950 text-blue-300 border border-blue-800">
+                Pareto
               </span>
             </div>
 
-            {/* SVG Visual Chart */}
-            <div className="w-full h-44 relative flex items-end">
-              <svg className="w-full h-full" viewBox="0 0 600 120" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="elevGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#00F0FF" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                {/* Horizontal Grid Lines */}
-                <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
-                <line x1="0" y1="65" x2="600" y2="65" stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
-                <line x1="0" y1="100" x2="600" y2="100" stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
-
-                {/* Elevation Area Fill */}
-                <path
-                  d="M 0 110 Q 150 95, 250 80 T 450 45 T 600 25 L 600 120 L 0 120 Z"
-                  fill="url(#elevGradient)"
-                />
-
-                {/* Elevation Glowing Curve */}
-                <path
-                  d="M 0 110 Q 150 95, 250 80 T 450 45 T 600 25"
-                  fill="none"
-                  stroke="#00F0FF"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-
-                {/* Terrain Difficulty Line */}
-                <path
-                  d="M 0 105 L 120 102 L 200 90 L 320 95 L 420 85 L 510 60 L 600 50"
-                  fill="none"
-                  stroke="#F59E0B"
-                  strokeWidth="2"
-                  strokeDasharray="5 5"
-                />
-
-                {/* Waypoint dots */}
-                <circle cx="0" cy="110" r="4" fill="#22C55E" />
-                <circle cx="600" cy="25" r="4" fill="#EF4444" />
-              </svg>
-
-              {/* Waypoint labels */}
-              <div className="absolute left-2 bottom-2 text-[10px] font-mono text-emerald-400 font-bold">
-                Start: -2,568 m
-              </div>
-              <div className="absolute right-2 top-2 text-[10px] font-mono text-red-400 font-bold">
-                Dest: -2,484 m (&Delta;h +84 m)
-              </div>
-            </div>
-
-            {/* Metrics Breakdown */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/10 font-mono text-xs">
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase text-slate-400 block">Tobler Speed (Flat)</span>
-                <span className="font-bold text-white text-sm">3.6 km/h</span>
-                <span className="text-[10px] text-slate-500 block">0.38g gravity adjust</span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase text-slate-400 block">Steepest Ascending Grade</span>
-                <span className="font-bold text-amber-400 text-sm">{activeCorridor.slopeMax}&deg;</span>
-                <span className="text-[10px] text-slate-500 block">Sub-15&deg; safe boundary</span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase text-slate-400 block">EVA Life Support Reserve</span>
-                <span className="font-bold text-emerald-400 text-sm">+20% Guaranteed</span>
-                <span className="text-[10px] text-slate-500 block">NASA Flight Rule 14-B</span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase text-slate-400 block">Energy Efficiency Delta</span>
-                <span className="font-bold text-cyan-400 text-sm">+34% vs Direct</span>
-                <span className="text-[10px] text-slate-500 block">Contour optimization</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Multi-Objective Optimization Matrix (Matching Planner Strategy Cards) */}
-      <section className="py-14 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-8">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <span className="text-xs font-mono uppercase font-bold text-emerald-400 tracking-wider">
-            Glass-Box Deterministic Engine
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Four Simultaneous Pareto-Frontier Trajectories
-          </h2>
-          <p className="text-xs sm:text-sm leading-relaxed text-slate-400">
-            VICTOR computes four distinct operational trade-offs simultaneously in under 100 milliseconds, giving mission commanders complete visibility without black-box AI hallucinations.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1. Safest */}
-          <div className="p-5 rounded-2xl border border-emerald-500/40 bg-[#08131E] space-y-4 shadow-lg hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] transition-all flex flex-col justify-between">
-            <div className="space-y-3">
+            {/* 1. Safest Strategy Card */}
+            <div className="p-3.5 rounded-xl border border-emerald-500/40 bg-[#08131E] space-y-2.5 shadow-md">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-400 font-mono font-bold text-sm">
-                  <ShieldCheck size={18} />
-                  <span>SAFEST</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="font-mono font-bold text-xs text-emerald-400">Safest</span>
+                  <span className="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    ACTIVE
+                  </span>
                 </div>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                  Optimal
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-300">
-                Minimizes cumulative terrain hazard and slope angle. Bypasses treacherous dune ripples and loose drift regolith with low thermal inertia.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-3 border-t border-white/10 font-mono text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Distance:</span>
-                <span className="font-bold text-white">17.1 km</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>EVA Time:</span>
-                <span className="font-bold text-white">5.4 h</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Hazard Score:</span>
-                <span className="font-bold text-emerald-400">2.25 (Low)</span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>Life Support:</span>
-                  <span className="text-emerald-400">90% of 6h</span>
+                <div className="flex items-center gap-1 text-[9px] font-mono text-emerald-300">
+                  <span>★ Optimal</span>
+                  <span>Feasible</span>
                 </div>
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px] text-slate-400 border-t border-b border-white/5 py-1.5">
+                <div>
+                  <span className="block text-[8px] uppercase">Dist</span>
+                  <span className="font-bold text-white">17.1 km</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">EVA</span>
+                  <span className="font-bold text-white">5.4 h</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Hazard</span>
+                  <span className="font-bold text-emerald-400">2.25</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Sci</span>
+                  <span className="font-bold text-white">0.582</span>
+                </div>
+              </div>
+              <div className="space-y-1 font-mono text-[10px]">
+                <div className="flex justify-between text-slate-400">
+                  <span>EVA Life Support (+20% res):</span>
+                  <span className="text-emerald-400 font-bold">90% of 6h</span>
+                </div>
+                <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden">
                   <div className="w-[90%] h-full bg-emerald-500 rounded-full" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 2. Fastest */}
-          <div className="p-5 rounded-2xl border border-blue-500/40 bg-[#08131E] space-y-4 shadow-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all flex flex-col justify-between">
-            <div className="space-y-3">
+            {/* 2. Fastest Strategy Card */}
+            <div className="p-3.5 rounded-xl border border-blue-500/30 bg-[#08131E] space-y-2.5 shadow-md">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-blue-400 font-mono font-bold text-sm">
-                  <Zap size={18} />
-                  <span>FASTEST</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" />
+                  <span className="font-mono font-bold text-xs text-blue-400">Fastest</span>
                 </div>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-800">
-                  Optimal
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-300">
-                Optimizes purely for minimal travel duration using Tobler hiking speeds on 0.38g gravity across hard bedrock channels.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-3 border-t border-white/10 font-mono text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Distance:</span>
-                <span className="font-bold text-white">16.2 km</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>EVA Time:</span>
-                <span className="font-bold text-blue-400">4.7 h</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Hazard Score:</span>
-                <span className="font-bold text-amber-400">2.85 (Mod)</span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>Life Support:</span>
-                  <span className="text-blue-400">78% of 6h</span>
+                <div className="flex items-center gap-1 text-[9px] font-mono text-blue-300">
+                  <span>★ Optimal</span>
+                  <span>Feasible</span>
                 </div>
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px] text-slate-400 border-t border-b border-white/5 py-1.5">
+                <div>
+                  <span className="block text-[8px] uppercase">Dist</span>
+                  <span className="font-bold text-white">16.2 km</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">EVA</span>
+                  <span className="font-bold text-blue-400">4.7 h</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Hazard</span>
+                  <span className="font-bold text-amber-400">2.85</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Sci</span>
+                  <span className="font-bold text-white">0.420</span>
+                </div>
+              </div>
+              <div className="space-y-1 font-mono text-[10px]">
+                <div className="flex justify-between text-slate-400">
+                  <span>EVA Life Support (+20% res):</span>
+                  <span className="text-blue-400 font-bold">78% of 6h</span>
+                </div>
+                <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden">
                   <div className="w-[78%] h-full bg-blue-500 rounded-full" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 3. Science-Richest */}
-          <div className="p-5 rounded-2xl border border-amber-500/40 bg-[#08131E] space-y-4 shadow-lg hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all flex flex-col justify-between">
-            <div className="space-y-3">
+            {/* 3. Science-Richest Strategy Card */}
+            <div className="p-3.5 rounded-xl border border-amber-500/30 bg-[#08131E] space-y-2.5 shadow-md">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-400 font-mono font-bold text-sm">
-                  <Sparkles size={18} />
-                  <span>SCIENCE_RICHEST</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="font-mono font-bold text-xs text-amber-400">Science-Richest</span>
                 </div>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
-                  Optimal
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-300">
-                Routes proactively near verified phyllosilicate clay deposits, olivine-bearing units, and ancient lacustrine carbonates mapped by CRISM.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-3 border-t border-white/10 font-mono text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Distance:</span>
-                <span className="font-bold text-white">19.4 km</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>EVA Time:</span>
-                <span className="font-bold text-white">5.9 h</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Science Score:</span>
-                <span className="font-bold text-amber-400">0.895 (Max)</span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>Life Support:</span>
-                  <span className="text-amber-400">98% of 6h</span>
+                <div className="flex items-center gap-1 text-[9px] font-mono text-amber-300">
+                  <span>★ Optimal</span>
+                  <span>Feasible</span>
                 </div>
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px] text-slate-400 border-t border-b border-white/5 py-1.5">
+                <div>
+                  <span className="block text-[8px] uppercase">Dist</span>
+                  <span className="font-bold text-white">19.4 km</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">EVA</span>
+                  <span className="font-bold text-white">5.9 h</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Hazard</span>
+                  <span className="font-bold text-amber-400">2.92</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Sci</span>
+                  <span className="font-bold text-amber-400">0.895</span>
+                </div>
+              </div>
+              <div className="space-y-1 font-mono text-[10px]">
+                <div className="flex justify-between text-slate-400">
+                  <span>EVA Life Support (+20% res):</span>
+                  <span className="text-amber-400 font-bold">98% of 6h</span>
+                </div>
+                <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden">
                   <div className="w-[98%] h-full bg-amber-500 rounded-full" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 4. Balanced */}
-          <div className="p-5 rounded-2xl border border-purple-500/40 bg-[#08131E] space-y-4 shadow-lg hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all flex flex-col justify-between">
-            <div className="space-y-3">
+            {/* 4. Balanced Strategy Card */}
+            <div className="p-3.5 rounded-xl border border-purple-500/30 bg-[#08131E] space-y-2.5 shadow-md">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-purple-400 font-mono font-bold text-sm">
-                  <Scale size={18} />
-                  <span>BALANCED</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span className="font-mono font-bold text-xs text-purple-400">Balanced</span>
                 </div>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">
-                  Optimal
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-300">
-                Harmonic multi-criteria arbitration: balances hazard avoidance against transit velocity and scientific sampling yield.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-3 border-t border-white/10 font-mono text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Distance:</span>
-                <span className="font-bold text-white">17.8 km</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>EVA Time:</span>
-                <span className="font-bold text-white">5.2 h</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Compromise:</span>
-                <span className="font-bold text-purple-400">Pareto Dominant</span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>Life Support:</span>
-                  <span className="text-purple-400">86% of 6h</span>
+                <div className="flex items-center gap-1 text-[9px] font-mono text-purple-300">
+                  <span>★ Optimal</span>
+                  <span>Feasible</span>
                 </div>
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px] text-slate-400 border-t border-b border-white/5 py-1.5">
+                <div>
+                  <span className="block text-[8px] uppercase">Dist</span>
+                  <span className="font-bold text-white">17.8 km</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">EVA</span>
+                  <span className="font-bold text-white">5.2 h</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Hazard</span>
+                  <span className="font-bold text-emerald-400">2.40</span>
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase">Sci</span>
+                  <span className="font-bold text-purple-300">0.720</span>
+                </div>
+              </div>
+              <div className="space-y-1 font-mono text-[10px]">
+                <div className="flex justify-between text-slate-400">
+                  <span>EVA Life Support (+20% res):</span>
+                  <span className="text-purple-400 font-bold">86% of 6h</span>
+                </div>
+                <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden">
                   <div className="w-[86%] h-full bg-purple-500 rounded-full" />
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <div className="text-center pt-2">
-          <Link
-            href="/methodology"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-semibold border border-white/10 bg-[#08131E] hover:bg-[#0D1A2D] text-slate-200 transition-colors shadow-sm"
-          >
-            <BookOpen size={14} className="text-cyan-400" />
-            <span>Read Full Mathematical Whitepaper &amp; Geodesic Proofs</span>
-          </Link>
+      {/* Bottom Command Console (Route Analysis & Risk Assessment - Matching Planner) */}
+      <section className="px-4 sm:px-6 pb-12 max-w-7xl mx-auto w-full">
+        <div className="p-5 rounded-2xl border border-white/10 bg-[#08131E] shadow-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2">
+              <Activity size={16} className="text-cyan-400" />
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-white">
+                Route Analysis &amp; Mission Profiles (4 computed strategies)
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-mono text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-0.5 bg-cyan-400 rounded" />
+                <span>Elevation</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-0.5 bg-amber-400 rounded" />
+                <span>Terrain Difficulty</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            {/* Elevation SVG Chart */}
+            <div className="lg:col-span-5 space-y-2">
+              <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">
+                SAFEST &mdash; ROUTE PROFILE (Cumulative Elevation Delta [&Delta;h])
+              </span>
+              <div className="w-full h-36 relative flex items-end bg-[#06090F] p-2 rounded-xl border border-white/5">
+                <svg className="w-full h-full" viewBox="0 0 500 100" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="deckElevGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.30" />
+                      <stop offset="100%" stopColor="#00F0FF" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="0" y1="25" x2="500" y2="25" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <line x1="0" y1="55" x2="500" y2="55" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <line x1="0" y1="85" x2="500" y2="85" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+
+                  <path d="M 0 90 Q 120 80, 220 65 T 380 40 T 500 20 L 500 100 L 0 100 Z" fill="url(#deckElevGrad)" />
+                  <path d="M 0 90 Q 120 80, 220 65 T 380 40 T 500 20" fill="none" stroke="#00F0FF" strokeWidth="2.5" />
+                  <path d="M 0 88 L 100 86 L 180 75 L 290 80 L 380 70 L 450 50 L 500 42" fill="none" stroke="#F59E0B" strokeWidth="1.8" strokeDasharray="4 4" />
+                </svg>
+                <div className="absolute left-3 bottom-2 text-[9px] font-mono text-cyan-400 font-bold">
+                  Start: -2,568 m
+                </div>
+                <div className="absolute right-3 top-2 text-[9px] font-mono text-cyan-400 font-bold">
+                  &Delta;h: +84.0 m
+                </div>
+              </div>
+            </div>
+
+            {/* Route Risk Assessment Gauges */}
+            <div className="lg:col-span-4 space-y-2 border-l border-r border-white/5 px-0 lg:px-4 font-mono text-xs">
+              <span className="text-[10px] uppercase text-slate-400 block font-semibold">
+                ROUTE RISK ASSESSMENT
+              </span>
+              <div className="space-y-2">
+                <div className="space-y-0.5">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-400">Terrain Hazard:</span>
+                    <span className="font-bold text-emerald-400">2.2 / 5.0</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                    <div className="w-[44%] h-full bg-emerald-500 rounded-full" />
+                  </div>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-400">Max Slope:</span>
+                  <span className="font-bold text-slate-200">2.4&deg; (Nominal)</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-400">Science Value:</span>
+                  <span className="font-bold text-cyan-400">8.6 / 10.0</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-400">Data Confidence:</span>
+                  <span className="font-bold text-amber-400">MODERATE (PDS Verified)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Science Targets Proximity */}
+            <div className="lg:col-span-3 space-y-2 font-mono text-xs">
+              <span className="text-[10px] uppercase text-slate-400 block font-semibold">
+                SCIENCE OPPORTUNITIES NEAR ROUTE
+              </span>
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-[11px]">
+                <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>Smectite Clay Deposit</span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Hawksbill Gap mudstones exhibiting 2.30 &mu;m phyllosilicate absorption.
+                </p>
+                <div className="text-[10px] text-emerald-400 pt-1 font-semibold">
+                  Offset: 45 m &middot; Tier 1 Priority
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* NASA Planetary Data System (PDS) Calibrated Ingestion Pipeline */}
+      {/* NASA Planetary Data System Ingestion Pipeline Section */}
       <section className="py-14 px-4 sm:px-6 border-t border-white/10 bg-[#070E18]">
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">

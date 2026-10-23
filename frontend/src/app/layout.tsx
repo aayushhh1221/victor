@@ -37,25 +37,25 @@ export const metadata: Metadata = {
 };
 
 // Pre-paint inline script: sets data-theme BEFORE first paint to eliminate flash.
-// The storage key must stay in sync with THEME_STORAGE_KEY in utils/theme.tsx.
+// Default to 'dark' for Space Mission Control environment.
 const themeScript = `
 (function(){
   try {
-    var stored = localStorage.getItem('victor-theme');
-    var system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', stored || system);
+    var stored = localStorage.getItem('victor_mission_theme_v3');
+    var theme = stored === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {
-    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
 `.trim();
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="white" />
+        <meta name="theme-color" content="#08131E" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
