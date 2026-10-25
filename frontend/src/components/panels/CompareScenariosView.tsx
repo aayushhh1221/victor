@@ -430,7 +430,7 @@ export default function CompareScenariosView({
                 </h4>
               </div>
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Lowering slope tolerances transforms crater escarpments and dune ridges into hard obstacles, forcing the A* algorithm to scout wider detour corridors.
+                Lowering slope tolerances transforms crater escarpments and dune ridges into hard obstacles, forcing the A* algorithm to scout wider detour paths.
               </p>
             </div>
 

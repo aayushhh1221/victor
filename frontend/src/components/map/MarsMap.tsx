@@ -692,7 +692,7 @@ export default function MarsMap({
           {tileState === 'loading' && (
             <>
               <span
-                className="inline-block w-2.5 h-2.5 rounded-full animate-pulse"
+                className="inline-block w-2 h-2 rounded-full"
                 style={{ background: 'var(--accent)' }}
               />
               Loading imagery…

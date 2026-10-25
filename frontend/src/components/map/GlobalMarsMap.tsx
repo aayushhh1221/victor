@@ -211,15 +211,10 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
             display:flex;align-items:center;justify-content:center;
             width:${isTarget ? '28px' : '20px'};height:${isTarget ? '28px' : '20px'};
           ">
-            ${isTarget ? `<div style="
-              position:absolute;inset:0;border-radius:50%;
-              background:rgba(34,197,94,0.4);
-              animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;
-            "></div>` : ''}
             <div style="
               background:${pinColor};border:2px solid #FFFFFF;border-radius:50%;
               width:${isTarget ? '16px' : '12px'};height:${isTarget ? '16px' : '12px'};
-              box-shadow:0 2px 6px rgba(0,0,0,0.8);
+              box-shadow:0 2px 6px rgba(0,0,0,0.4);
               cursor:pointer;
             "></div>
           </div>
@@ -232,7 +227,7 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
         <div style="font-family:Inter,sans-serif;font-size:12px;max-width:240px;color:#111;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <strong style="font-size:13px;color:#0F172A;">${lm.name}</strong>
-            ${isTarget ? `<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">VICTOR ACTIVE</span>` : ''}
+            ${isTarget ? `<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">TARGET SITE</span>` : ''}
           </div>
           <div style="font-size:11px;color:#64748B;margin-bottom:6px;">
             ${lm.lat >= 0 ? `${lm.lat}°N` : `${Math.abs(lm.lat)}°S`}, ${lm.marsLon}°E
@@ -242,11 +237,11 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
           <p style="font-size:11px;line-height:1.4;margin:0 0 8px 0;color:#334155;">${lm.desc}</p>
           ${isTarget ? `
             <button id="btn-goto-jezero" style="
-              width:100%;background:#16A34A;color:#fff;border:none;border-radius:6px;
+              width:100%;background:#1565C0;color:#fff;border:none;border-radius:6px;
               padding:6px 10px;font-weight:600;font-size:11px;cursor:pointer;
               display:flex;align-items:center;justify-content:center;gap:4px;
             ">
-              Open Tactical Mission Planner →
+              Open Mission Planner →
             </button>
           ` : ''}
         </div>
@@ -323,7 +318,7 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
             </span>
           </div>
           <span className="text-[11px] px-2 py-0.5 rounded font-mono" style={{ background: 'var(--surface-sunken)', color: 'var(--text-muted)' }}>
-            Global 360° Planetary Coverage · Real NASA / USGS Data
+            Planetary Context · MGS MOLA & Viking MDIM 2.1
           </span>
         </div>
 
@@ -360,60 +355,60 @@ export default function GlobalMarsMap({ onSelectJezero }: GlobalMarsMapProps) {
         {/* Offline / unreachable fallback notification */}
         {tileError && (
           <div
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-[1050] px-4 py-2 rounded-lg text-xs font-medium shadow-2xl backdrop-blur-md flex items-center gap-2 max-w-lg text-center"
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[1050] px-4 py-2 rounded-lg text-xs font-medium shadow-md flex items-center gap-2 max-w-lg text-center"
             style={{
-              background: 'rgba(30, 41, 59, 0.95)',
-              color: '#F8FAFC',
-              border: '1px solid rgba(245, 158, 11, 0.6)',
+              background: 'var(--surface)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--color-warning-border)',
             }}
           >
-            <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--color-warning)' }} />
             <span>
-              Global NASA Treks tiles are currently unreachable offline. Local tactical layers for Jezero Crater remain fully operational.
+              Online basemap tiles are currently unreachable. Local dataset layers in Mission Planner remain available.
             </span>
           </div>
         )}
 
         {/* Target Site Callout floating box */}
         <div
-          className="absolute bottom-6 left-6 z-[1050] rounded-xl p-3.5 shadow-2xl backdrop-blur-md max-w-sm"
+          className="absolute bottom-6 left-6 z-[1050] rounded-xl p-3.5 shadow-lg max-w-sm"
           style={{
-            background: 'rgba(15, 23, 42, 0.92)',
-            border: '1px solid rgba(34, 197, 94, 0.5)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-            color: '#FFFFFF',
+            background: 'var(--surface-overlay)',
+            border: '1px solid var(--border)',
+            backdropFilter: 'blur(8px)',
+            color: 'var(--text-primary)',
           }}
         >
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              Active Mission Zone: Jezero Crater
+            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-success)' }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>
+              Study Area: Jezero Crater
             </span>
           </div>
-          <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
-            Jezero Crater (18.38°N, 77.58°E) is VICTOR’s active high-resolution multi-mission operational zone.
-            Features 5 m/px CTX imagery, CRISM mineral spectroscopy, and multi-objective A* traverse routing.
+          <p className="text-[11px] leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
+            Jezero Crater (18.38°N, 77.58°E) is VICTOR’s primary study area.
+            It uses local CTX imagery, MOLA elevation data, and mineral indicators to evaluate candidate traverses.
           </p>
           {onSelectJezero && (
             <button
               onClick={onSelectJezero}
-              className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-xs font-semibold shadow-md transition-all hover:brightness-110 active:scale-98"
-              style={{ background: '#16A34A', color: '#FFFFFF' }}
+              className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-xs font-semibold shadow-sm transition-all hover:brightness-105"
+              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
             >
-              <span>Launch Tactical Route Planner</span>
+              <span>Open Mission Planner</span>
               <ExternalLink size={13} />
             </button>
           )}
         </div>
 
-        {/* Live Coordinate Display */}
+        {/* Coordinate Display */}
         <div
-          className="absolute bottom-6 right-6 z-[1050] px-3.5 py-2 rounded-lg font-mono text-[11px] shadow-2xl backdrop-blur-md"
+          className="absolute bottom-6 right-6 z-[1050] px-3.5 py-2 rounded-lg font-mono text-[11px] shadow-sm"
           style={{
-            background: 'rgba(15, 23, 42, 0.92)',
-            color: '#E2E8F0',
-            border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            background: 'var(--surface-overlay)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border)',
+            backdropFilter: 'blur(8px)',
           }}
         >
           {hoverCoord

@@ -70,47 +70,6 @@ const DEFAULT_LAYERS: ActiveLayer[] = [
   { id: 'perseverance_traverse', visible: false, opacity: 0.8 },
 ];
 
-interface MissionPreset {
-  id: string;
-  name: string;
-  start: Coordinate;
-  destination: Coordinate;
-  desc: string;
-  constraints?: Partial<MissionConstraints>;
-}
-
-const MISSION_PRESETS: MissionPreset[] = [
-  {
-    id: 'perseverance',
-    name: 'Séítah → Ancient Delta (Perseverance Traverse)',
-    start: { lat: 18.44, lon: 77.45 },
-    destination: { lat: 18.48, lon: 77.24 },
-    desc: 'Historical Mars 2020 landing site traverse across crater floor toward river delta (17.1 km).',
-    constraints: { max_eva_hours: 7.5 },
-  },
-  {
-    id: 'delta-fan',
-    name: 'Crater Floor → Delta Fan',
-    start: { lat: 18.432, lon: 77.425 },
-    destination: { lat: 18.461, lon: 77.330 },
-    desc: 'Traverse across basaltic sands to Hawksbill Gap layered delta deposits (6.0 km).',
-  },
-  {
-    id: 'three-forks',
-    name: 'Three Forks → Margin Unit',
-    start: { lat: 18.452, lon: 77.352 },
-    destination: { lat: 18.498, lon: 77.240 },
-    desc: 'Sample cache depot route ascending to carbonate-bearing rim margin (7.3 km).',
-  },
-  {
-    id: 'kodiak',
-    name: 'Kodiak Butte Pass → Crater Rim',
-    start: { lat: 18.440, lon: 77.385 },
-    destination: { lat: 18.490, lon: 77.360 },
-    desc: 'Geological scouting mission toward Jezero crater northern rim (3.4 km).',
-  },
-];
-
 type PinMode = 'start' | 'destination' | null;
 
 /** Map which sidebar sections and header tabs render as the full-page main view. */
@@ -217,7 +176,6 @@ export default function PlannerPage() {
   const [sidebarSection, setSidebarSection] = useState('plan');
   const [showSciencePanel, setShowSciencePanel] = useState(false);
   const [bottomPanelCollapsed, setBottomPanelCollapsed] = useState(false);
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('perseverance');
   const [scienceLabel, setScienceLabel] = useState('');
 
   // Right sidebar tab state: 'solutions' | 'parameters' | 'layers'
@@ -234,10 +192,10 @@ export default function PlannerPage() {
 
   // Manual keyboard coordinate entry state
   const [showManualCoord, setShowManualCoord] = useState(false);
-  const [manualStartLat, setManualStartLat] = useState('18.4447');
-  const [manualStartLon, setManualStartLon] = useState('77.4508');
-  const [manualDestLat, setManualDestLat] = useState('18.4800');
-  const [manualDestLon, setManualDestLon] = useState('77.2400');
+  const [manualStartLat, setManualStartLat] = useState('');
+  const [manualStartLon, setManualStartLon] = useState('');
+  const [manualDestLat, setManualDestLat] = useState('');
+  const [manualDestLon, setManualDestLon] = useState('');
   const [coordFeedback, setCoordFeedback] = useState<string | null>(null);
 
   const handleApplyManualCoords = () => {
@@ -385,12 +343,10 @@ export default function PlannerPage() {
         // If destination has not been set yet, transition to destination mode; otherwise finish placement
         setPinMode(!destination ? 'destination' : null);
         setComputeError(null);
-        setSelectedPresetId('');
       } else if (pinMode === 'destination') {
         setDestination(clamped);
         setPinMode(null);
         setComputeError(null);
-        setSelectedPresetId('');
       }
       // When pinMode is null, map clicks do NOT move pins. Markers can still be dragged directly.
     },
@@ -404,7 +360,6 @@ export default function PlannerPage() {
       setDestination(coord);
     }
     setComputeError(null);
-    setSelectedPresetId('');
   }, []);
 
   const triggerCompute = useCallback(
@@ -466,38 +421,6 @@ export default function PlannerPage() {
       triggerCompute(start, destination, constraints, Object.keys(newWeights).length > 0 ? newWeights : undefined);
     }
   };
-
-  const handleSelectPreset = useCallback(
-    async (preset: MissionPreset) => {
-      setSelectedPresetId(preset.id);
-      setStart(preset.start);
-      setDestination(preset.destination);
-      setPinMode(null);
-      setComputeError(null);
-      const mergedConstraints = preset.constraints
-        ? { ...constraints, ...preset.constraints }
-        : constraints;
-      if (preset.constraints) {
-        setConstraints(mergedConstraints);
-      }
-      await triggerCompute(preset.start, preset.destination, mergedConstraints);
-    },
-    [triggerCompute, constraints],
-  );
-
-  // Sync initial preset from URL query params (e.g. /planner?preset=kodiak)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const presetParam = params.get('preset');
-      if (presetParam) {
-        const found = MISSION_PRESETS.find((p) => p.id === presetParam);
-        if (found) {
-          handleSelectPreset(found);
-        }
-      }
-    }
-  }, [handleSelectPreset]);
 
   const handleSegmentClick = useCallback(
     async (strategy: RouteStrategy, segmentId: number) => {
@@ -1378,14 +1301,15 @@ export default function PlannerPage() {
                       No Route Computed Yet
                     </p>
                     <p className="text-xs text-slate-400 mb-4">
-                      Select a historical preset or place Start and Destination pins to calculate optimal Martian surface traverses.
+                      Place a start point and a destination on the map to compare candidate routes.
+                      You can also enter coordinates in Parameters.
                     </p>
                     <button
-                      onClick={() => setSidebarTab('parameters')}
+                      onClick={() => setPinMode('start')}
                       className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm"
                       style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
                     >
-                      Choose Mission Preset or Waypoints →
+                      Set Start Point
                     </button>
                   </div>
                 )}
@@ -1455,47 +1379,6 @@ export default function PlannerPage() {
             {/* TAB 2: MISSION PARAMETERS & SETUP */}
             {sidebarTab === 'parameters' && (
               <div>
-                {/* Mission Presets */}
-                <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="section-heading">Historical Mission Presets</p>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-sunken)', color: 'var(--text-muted)' }}>
-                      Jezero Crater
-                    </span>
-                  </div>
-                  <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                    Choose a historical traverse or place custom pins:
-                  </p>
-                  <div className="space-y-1.5">
-                    {MISSION_PRESETS.map((preset) => {
-                      const isSelected = selectedPresetId === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          onClick={() => handleSelectPreset(preset)}
-                          className="w-full text-left p-2 rounded text-xs transition-all flex flex-col gap-0.5 hover:brightness-105"
-                          style={{
-                            background: isSelected ? 'var(--surface-sunken)' : 'transparent',
-                            border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-xs" style={{ color: isSelected ? 'var(--accent)' : 'var(--text-primary)' }}>
-                              {preset.name}
-                            </span>
-                            {isSelected && (
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
-                            )}
-                          </div>
-                          <span className="text-[10px] leading-tight line-clamp-2" style={{ color: 'var(--text-muted)' }}>
-                            {preset.desc}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 {/* Mission parameters */}
                 <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
                   <p className="section-heading mb-3">Operational Constraints</p>

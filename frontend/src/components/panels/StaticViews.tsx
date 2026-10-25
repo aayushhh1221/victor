@@ -18,7 +18,7 @@ const GlobalMarsMap = dynamic(() => import('@/components/map/GlobalMarsMap'), {
     <div className="w-full h-full flex items-center justify-center" style={{ background: '#050508' }}>
       <div className="text-center">
         <div className="skeleton w-16 h-16 rounded-full mx-auto mb-3" />
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading NASA Planetary Mars Map…</p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading Mars Map…</p>
       </div>
     </div>
   ),
@@ -138,17 +138,17 @@ export function MethodologyView() {
 
 export function AboutView() {
   return (
-    <ViewShell icon={<BookOpen size={18} />} eyebrow="NASA Mars Exploration Program" title="About VICTOR">
+    <ViewShell icon={<BookOpen size={18} />} eyebrow="Independent Project" title="About VICTOR">
       <InfoBox title="VICTOR">
         <p>
           <strong>VICTOR</strong> stands for <strong>Voyage Intelligence for Terrain-aware
           Cartographic Optimization &amp; Routing</strong>.
         </p>
       </InfoBox>
-      <InfoBox title="Mission Directorate">
+      <InfoBox title="Project Origin">
         <p>
-          Developed for the <strong>NASA Mars Exploration Program</strong> and autonomous EVA routing
-          operations in Jezero Crater, Mars.
+          An independent project developed for the <strong>NASA Space Apps Challenge</strong> exploring
+          terrain-aware route evaluation in Jezero Crater, Mars.
         </p>
       </InfoBox>
       <InfoBox title="What VICTOR does">
@@ -166,7 +166,7 @@ export function AboutView() {
       <InfoBox title="Data Honesty">
         <p>
           VICTOR is designed around one principle: <strong>never misrepresent data provenance</strong>.
-          Every number displayed traces to a specific NASA instrument or is labelled as a model
+          Every number displayed traces to a specific dataset or is labelled as a model
           estimate. Missing data is shown as <code>—</code>, not as a plausible-looking number.
         </p>
       </InfoBox>
@@ -176,10 +176,10 @@ export function AboutView() {
           <li><strong>THEMIS</strong> (Thermal Emission Imaging System, 2001 Mars Odyssey) — night-IR thermal inertia proxy</li>
           <li><strong>CTX</strong> (Context Camera, Mars Reconnaissance Orbiter) — orbital base imagery, ~5 m/px</li>
           <li><strong>CRISM</strong> (Compact Reconnaissance Imaging Spectrometer for Mars, MRO) — olivine and carbonate mineralogy (181 m/px)</li>
-          <li><strong>Mars 2020 / Perseverance</strong> — reference rover traverse, published science targets, and MEDA atmospheric data</li>
+          <li><strong>Mars 2020 / Perseverance</strong> — reference rover traverse and landing site context</li>
         </ul>
         <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          All scientific datasets are authentic NASA PDS products from 4 planetary missions.
+          VICTOR is an independent NASA Space Apps Challenge project. It is not an official NASA product or mission-operations tool.
         </p>
       </InfoBox>
     </ViewShell>
@@ -260,7 +260,7 @@ export function DataSourceList() {
   return (
     <>
       <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-        Every routing decision traces to one of these NASA instrument data products.
+        Every routing decision traces to one of these data products.
         Sources marked PENDING are not yet ingested; any UI element depending on them shows <code>—</code>.
       </p>
       <div className="space-y-3">
@@ -360,7 +360,7 @@ function EnvField({
           {label}
         </p>
         <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
-          {unavailable ? 'Not available — no ingested NASA product for this quantity' : (source ?? 'Source not reported')}
+          {unavailable ? 'Not available — no ingested data for this quantity' : (source ?? 'Source not reported')}
         </p>
         {!unavailable && scale && (
           <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
@@ -449,7 +449,7 @@ export function EnvironmentalView() {
                   {env.region}
                 </p>
                 <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Every value below is read from an ingested NASA product or reported as
+                  Every value below is read from an ingested dataset or reported as
                   unavailable.
                 </p>
               </div>
@@ -520,7 +520,7 @@ export function EnvironmentalView() {
               <Info size={16} className="flex-shrink-0 mt-0.5 text-blue-400" />
               <div>
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  NASA Planetary Data Ingestion Notes
+                  Data Ingestion Notes
                 </p>
                 <p className="text-xs mt-1 leading-relaxed">{notes}</p>
               </div>

@@ -1,27 +1,28 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import Header from '@/components/common/Header';
-import { Compass, Mountain, Activity, ShieldCheck, Zap, Layers, Scale } from 'lucide-react';
+import { Compass, Mountain, ShieldCheck, Zap, Scale, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function MethodologyPage() {
   const sections = [
-    { id: 'geodesics', title: '1. Martian Geodesics & Spheroid Datum' },
-    { id: 'spatial-resolution', title: '2. Non-Square Grid Resolution' },
-    { id: 'tobler-velocity', title: '3. Anisotropic Tobler Walking Velocity' },
-    { id: 'cost-decomposition', title: '4. Multi-Objective Cost Function' },
-    { id: 'pareto-dominance', title: '5. Pareto Frontier Optimization' },
-    { id: 'eva-safety-reserve', title: '6. Life-Support Reserve Accounting' },
+    { id: 'geodesics', title: '1. Coordinates and Distance' },
+    { id: 'slope-speed', title: '2. Terrain Slope and Traversal Speed' },
+    { id: 'trade-offs', title: '3. Multi-Objective Route Strategies' },
+    { id: 'pareto', title: '4. Evaluating Trade-offs' },
+    { id: 'reserves', title: '5. Time and Reserve Margins' },
+    { id: 'limitations', title: '6. Limitations and Assumptions' },
   ];
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans transition-colors duration-200"
+      className="min-h-screen flex flex-col font-sans"
       style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
     >
-      <Header dataMode="VERIFIED_SNAPSHOT" activeTab="methodology" />
+      <Header activeTab="methodology" />
 
-      {/* Page Title Section (In Document Flow) */}
+      {/* Page Header */}
       <section className="border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -36,11 +37,11 @@ export default function MethodologyPage() {
               <Compass size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight uppercase" style={{ color: 'var(--text-primary)' }}>
-                Scientific Methodology &amp; Mathematical Specification
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                How VICTOR evaluates routes
               </h1>
-              <p className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-                NASA Mars Exploration Program &middot; Autonomous Traverse Optimization &middot; IAU2000 Mars Frame
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Terrain-aware pathfinding models, traversal speed estimations, and trade-offs in Jezero Crater.
               </p>
             </div>
           </div>
@@ -50,20 +51,10 @@ export default function MethodologyPage() {
               style={{
                 background: 'var(--surface-raised)',
                 borderColor: 'var(--border)',
-                color: 'var(--text-primary)',
+                color: 'var(--text-secondary)',
               }}
             >
-              R_Mars = 3389.5 km
-            </span>
-            <span
-              className="px-2.5 py-1 rounded border"
-              style={{
-                background: 'var(--surface-raised)',
-                borderColor: 'var(--border)',
-                color: 'var(--accent)',
-              }}
-            >
-              Gravity = 0.38g
+              Mars Radius: 3,389.5 km
             </span>
           </div>
         </div>
@@ -71,8 +62,8 @@ export default function MethodologyPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 flex flex-col lg:flex-row gap-10">
-        {/* Sticky Table of Contents rail */}
-        <aside className="lg:w-72 flex-shrink-0">
+        {/* Table of Contents rail */}
+        <aside className="lg:w-64 flex-shrink-0">
           <div
             className="lg:sticky lg:top-20 space-y-1 p-4 rounded-xl border"
             style={{
@@ -80,14 +71,14 @@ export default function MethodologyPage() {
               borderColor: 'var(--border)',
             }}
           >
-            <p className="text-[10px] font-bold uppercase tracking-wider mb-3 px-2" style={{ color: 'var(--text-muted)' }}>
-              Specification Index
+            <p className="section-heading mb-3 px-2">
+              Outline
             </p>
             {sections.map((s) => (
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className="block px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:brightness-110"
+                className="block px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-[var(--surface-sunken)]"
                 style={{ color: 'var(--text-secondary)' }}
               >
                 {s.title}
@@ -96,180 +87,151 @@ export default function MethodologyPage() {
           </div>
         </aside>
 
-        {/* Scientific Paper Body */}
-        <article className="flex-1 min-w-0 space-y-12">
+        {/* Article Body */}
+        <article className="flex-1 min-w-0 space-y-10">
           {/* Section 1 */}
-          <section id="geodesics" className="scroll-mt-24 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              <Compass size={14} />
-              <span>Section 1</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Oblate Spheroidal Geodesics &amp; IAU2000 Mars Frame
+          <section id="geodesics" className="scroll-mt-24 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              1. Coordinates and Distance Calculation
             </h2>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Mars is an oblate ellipsoid with significant polar flattening. To avoid severe euclidean projection distortions,
-              all surface distances between cell coordinates $(\phi_1, \lambda_1)$ and $(\phi_2, \lambda_2)$ are evaluated via the Great-Circle
-              Haversine formula evaluated at the IAU2000 volumetric mean radius of Mars:
+              Surface distances between grid cells in Jezero Crater are calculated using spherical geodesics based on the mean volumetric radius of Mars (3,389.5 km).
             </p>
             <div
-              className="p-4 rounded-xl font-mono text-xs overflow-x-auto border"
-              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}
+              className="p-4 rounded-xl border text-xs space-y-2 leading-relaxed"
+              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
             >
-              <p className="font-bold" style={{ color: 'var(--mode-live)' }}>{'// Mars Volumetric Mean Radius (IAU2000/PDS Standard)'}</p>
-              <p style={{ color: 'var(--text-primary)' }}>R_MARS = 3,389,500.0 meters (3389.5 km)</p>
-              <p className="mt-2" style={{ color: 'var(--text-muted)' }}>{'// Haversine Geodesic Arc Metric:'}</p>
-              <p style={{ color: 'var(--accent)' }}>
-                Δσ = 2 &middot; arcsin(&radic;( sin&sup2;(&Delta;&phi;/2) + cos(&phi;&sub1;)&middot;cos(&phi;&sub2;)&middot;sin&sup2;(&Delta;&lambda;/2) ))
+              <p>
+                The Jezero study grid covers 18.00°N to 18.90°N latitude and 77.00°E to 78.00°E longitude on a 300 × 300 cell matrix. Because lines of longitude converge toward the poles, grid cell dimensions are not square: north-south step sizes are approximately 177 meters, and east-west step sizes are approximately 187 meters at 18.45°N.
               </p>
-              <p style={{ color: 'var(--accent)' }}>Distance (meters) = R_MARS &middot; Δσ</p>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              Equatorial radius a = 3396.19 km and polar radius c = 3376.20 km define Mars&apos;s flattening ratio
-              f = 0.00589. Over the 53 &times; 56 km Jezero operational quadrant, Haversine on mean volumetric datum
-              limits geodesic error to &lt; 0.04%, well within MOLA horizontal measurement tolerances.
-            </p>
           </section>
 
           {/* Section 2 */}
-          <section id="spatial-resolution" className="scroll-mt-24 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              <Layers size={14} />
-              <span>Section 2</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Non-Square Grid Resolution &amp; Metric Metric Aspect
+          <section id="slope-speed" className="scroll-mt-24 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Mountain size={16} style={{ color: 'var(--accent)' }} />
+              <span>2. Terrain Slope and Traversal Speed</span>
             </h2>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              The Jezero Crater computation grid spans 18.00&deg;N to 18.90&deg;N latitude and 77.00&deg;E to 78.00&deg;E longitude
-              sampled at 300 &times; 300 cells. Because meridians converge poleward, cells are strictly non-square:
+              Walking speed is modelled as a function of terrain slope using an adapted version of Tobler&apos;s hiking function. On flat terrain, nominal walking speed is assumed to be 3.0 km/h under Mars gravity conditions.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-3.5 rounded-xl border" style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}>
-                <span className="text-[10px] font-mono uppercase block" style={{ color: 'var(--text-muted)' }}>North-South Spacing (&Delta;y)</span>
-                <span className="text-base font-bold font-mono block mt-1" style={{ color: 'var(--text-primary)' }}>177.5 meters</span>
-                <span className="text-xs block mt-1" style={{ color: 'var(--text-muted)' }}>Exact arc length of 0.003&deg; latitude</span>
-              </div>
-              <div className="p-3.5 rounded-xl border" style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}>
-                <span className="text-[10px] font-mono uppercase block" style={{ color: 'var(--text-muted)' }}>East-West Spacing (&Delta;x at 18.45&deg;N)</span>
-                <span className="text-base font-bold font-mono block mt-1" style={{ color: 'var(--text-primary)' }}>187.1 meters</span>
-                <span className="text-xs block mt-1" style={{ color: 'var(--text-muted)' }}>Adjusted by cos(18.45&deg;) = 0.9486</span>
-              </div>
+            <div
+              className="p-4 rounded-xl border text-xs space-y-2 leading-relaxed"
+              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+            >
+              <p>
+                <strong>Slope effects:</strong> Gentle downhill grades allow slightly faster walking, while uphill grades reduce speed significantly. Gradients exceeding 20 degrees incur steep travel time penalties or are treated as impassable terrain depending on the selected constraints.
+              </p>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              Diagonal cell traversals account for anisotropic step length: D_diag = &radic;(&Delta;x&sup2; + &Delta;y&sup2;) &approx; 257.9 meters.
-            </p>
           </section>
 
           {/* Section 3 */}
-          <section id="tobler-velocity" className="scroll-mt-24 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              <Mountain size={14} />
-              <span>Section 3</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Anisotropic Tobler Walking Velocity on 0.38g Gravity
+          <section id="trade-offs" className="scroll-mt-24 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Zap size={16} style={{ color: 'var(--accent)' }} />
+              <span>3. Multi-Objective Route Strategies</span>
             </h2>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Human traversal velocity is an exponential anisotropic function of slope gradient. VICTOR implements Waldo Tobler’s
-              classic Hiking Function, modified for the reduced Martian gravity (0.38g) and the kinematic resistance of pressurized Extravehicular Mobility Units (EMUs):
+              Different exploration scenarios require different balances between travel time, safety, and scientific sampling opportunities. The routing engine evaluates four distinct weighting profiles:
             </p>
-            <div
-              className="p-4 rounded-xl font-mono text-xs overflow-x-auto border"
-              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}
-            >
-              <p className="font-bold" style={{ color: 'var(--color-warning)' }}>{'// Tobler Anisotropic Velocity (km/h):'}</p>
-              <p style={{ color: 'var(--accent)' }}>v(S) = v&sub0; &middot; exp( -3.5 &middot; |tan(S) + 0.05| )</p>
-              <p className="mt-2" style={{ color: 'var(--text-muted)' }}>{'// Where:'}</p>
-              <p style={{ color: 'var(--text-primary)' }}>S = slope in radians (rise / run)</p>
-              <p style={{ color: 'var(--text-primary)' }}>v&sub0; = unhindered pace (nominally 3.0 km/h on Mars)</p>
-              <p style={{ color: 'var(--mode-live)' }}>Optimal pace occurs at gentle downhill slope: S = -0.05 rad (-2.86&deg;)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3.5 rounded-xl border" style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}>
+                <p className="font-semibold text-sm mb-1" style={{ color: 'var(--route-safest)' }}>Safest Route</p>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  Prioritizes flatter terrain, lower cumulative slopes, and lower surface hazard scores, accepting longer travel distance to avoid steep or difficult ground.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl border" style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}>
+                <p className="font-semibold text-sm mb-1" style={{ color: 'var(--route-fastest)' }}>Fastest Route</p>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  Minimizes estimated traverse duration, following the most direct feasible path subject to the maximum allowable slope constraint.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl border" style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}>
+                <p className="font-semibold text-sm mb-1" style={{ color: 'var(--route-science-richest)' }}>Science-Weighted Route</p>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  Biases paths toward areas with known mineral interest, such as clay and carbonate signatures identified in CRISM data.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl border" style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}>
+                <p className="font-semibold text-sm mb-1" style={{ color: 'var(--route-balanced)' }}>Balanced Route</p>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  A compromise weighting that balances distance, slope difficulty, and science opportunities evenly.
+                </p>
+              </div>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              Traversing uphill at 15&deg; reduces walking velocity to 0.84 km/h; descending scarps &gt; 20&deg; incurs
-              severe slipping and braking penalties.
-            </p>
           </section>
 
           {/* Section 4 */}
-          <section id="cost-decomposition" className="scroll-mt-24 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              <Zap size={14} />
-              <span>Section 4</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Multi-Objective Cost Decomposition (Glass Box Engine)
+          <section id="pareto" className="scroll-mt-24 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Scale size={16} style={{ color: 'var(--accent)' }} />
+              <span>4. Evaluating Trade-offs (Pareto Comparison)</span>
             </h2>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Every edge in the A* graph search is evaluated against a weighted composite cost function that balances
-              physical distance, terrain roughness, slope hazard, and scientific sampling value:
+              When multiple candidate routes are computed, VICTOR compares their key metrics — travel time, cumulative hazard, and science score — to determine whether any route is clearly dominated by another.
             </p>
-            <div
-              className="p-4 rounded-xl font-mono text-xs overflow-x-auto border"
-              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}
-            >
-              <p style={{ color: 'var(--accent)' }}>
-                Cost(edge) = w_dist &middot; D + w_hazard &middot; Hazard(p) &middot; D + w_slope &middot; f(S) &middot; D - w_sci &middot; Science(p)
-              </p>
-            </div>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              VICTOR computes 4 distinct Pareto-competing strategies simultaneously:
+              A candidate route is non-dominated if no other computed route is simultaneously faster, safer, and richer in scientific opportunity. Presenting these trade-offs transparently allows mission planners to select the profile suited to their specific operational priorities.
             </p>
-            <ul className="text-xs space-y-2 list-disc list-inside" style={{ color: 'var(--text-secondary)' }}>
-              <li><strong style={{ color: 'var(--mode-live)' }}>SAFEST:</strong> Minimizes cumulative hazard and strict slope penalties (w_hazard = 3.0, w_slope = 3.0).</li>
-              <li><strong style={{ color: 'var(--accent)' }}>FASTEST:</strong> Minimizes distance and traverse duration (w_dist = 3.0).</li>
-              <li><strong style={{ color: 'var(--color-warning)' }}>SCIENCE_RICHEST:</strong> Heavily incentivizes routing through carbonate and clay deposits (w_sci = 3.5).</li>
-              <li><strong style={{ color: '#A855F7' }}>BALANCED:</strong> Equalized harmonic arbitration (w_dist = 1.0, w_hazard = 1.0, w_slope = 1.0, w_sci = 1.0).</li>
-            </ul>
           </section>
 
           {/* Section 5 */}
-          <section id="pareto-dominance" className="scroll-mt-24 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              <Scale size={14} />
-              <span>Section 5</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Pareto Frontier Dominance Arithmetic
+          <section id="reserves" className="scroll-mt-24 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <ShieldCheck size={16} style={{ color: 'var(--color-success)' }} />
+              <span>5. Time and Reserve Margins</span>
             </h2>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              In multi-objective optimization, a strategy A Pareto-dominates strategy B (A &succ; B) if and only if:
-            </p>
-            <div
-              className="p-4 rounded-xl font-mono text-xs border"
-              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}
-            >
-              <p style={{ color: 'var(--accent)' }}>&forall; i &in; Objectives, M_i(A) &le; M_i(B)  AND  &exist; j &in; Objectives, M_j(A) &lt; M_j(B)</p>
-            </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              Where objective vector M = [Hazard, Time, -Science].
-              Routes identified as <strong style={{ color: 'var(--mode-live)' }}>NON_DOMINATED</strong> lie on the true Pareto optimal frontier — meaning no objective can be improved without degrading another.
+              Extravehicular activities (EVAs) require safety margins for unexpected delays and exertion. By default, VICTOR applies a planning reserve margin to estimated travel durations to determine whether a route fits within the maximum allowable mission time budget.
             </p>
           </section>
 
           {/* Section 6 */}
-          <section id="eva-safety-reserve" className="scroll-mt-24 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
-              <ShieldCheck size={14} />
-              <span>Section 6</span>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Consumables &amp; 20% Life-Support Safety Margin
+          <section id="limitations" className="scroll-mt-24 space-y-3">
+            <h2 className="text-lg font-bold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <AlertTriangle size={16} style={{ color: 'var(--color-warning)' }} />
+              <span>6. Limitations and Assumptions</span>
             </h2>
-            <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Per NASA EVA flight rules (JSC-28538), astronaut surface traversals require a non-negotiable 20% life-support reserve
-              accounting for unexpected suit telemetry, physical exertion, and rover mechanical delays:
-            </p>
             <div
-              className="p-4 rounded-xl font-mono text-xs border"
-              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)' }}
+              className="p-4 rounded-xl border text-xs space-y-3 leading-relaxed"
+              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
             >
-              <p style={{ color: 'var(--accent)' }}>Required_EVA_Duration = Estimated_Traverse_Time &times; 1.20</p>
-              <p className="mt-1" style={{ color: 'var(--text-muted)' }}>If Required_EVA_Duration &gt; Max_EVA_Budget &rarr; Route is classified INFEASIBLE</p>
+              <p>
+                <strong>Grid resolution:</strong> The elevation model has an effective spatial resolution of approximately 177–187 meters per cell. Micro-topographic obstacles such as boulders, small craters, and narrow crevices below grid resolution are not visible to the solver.
+              </p>
+              <p>
+                <strong>Planning tool only:</strong> Outputs from VICTOR are intended for conceptual exploration and challenge evaluation. They do not constitute operational guidance or certified flight plans.
+              </p>
             </div>
           </section>
+
+          {/* Action Link */}
+          <div className="pt-6 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+            <Link
+              href="/data"
+              className="text-xs font-medium hover:underline"
+              style={{ color: 'var(--accent)' }}
+            >
+              ← Inspect Data Sources
+            </Link>
+            <Link
+              href="/planner"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+            >
+              <span>Open Mission Planner</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </article>
       </div>
+
+      {/* Footer Disclosure */}
+      <footer className="border-t py-6 px-6 text-center text-xs mt-auto" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+        <p>VICTOR is an independent NASA Space Apps Challenge project. It is not an official NASA product or mission-operations tool.</p>
+      </footer>
     </div>
   );
 }

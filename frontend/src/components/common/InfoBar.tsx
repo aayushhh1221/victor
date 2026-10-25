@@ -142,7 +142,9 @@ export default function InfoBar({ region, loading, error, environment }: InfoBar
           unavailable={!region?.name}
           tooltip={
             region?.name
-              ? `${region.name} (${formatCoords(region.lat ?? 18.45, region.lon ?? 77.5)}) · ${region.region_description ?? ''}`
+              ? hasCoords
+                ? `${region.name} (${formatCoords(region!.lat!, region!.lon!)}) · ${region.region_description ?? ''}`
+                : `${region.name} (Coordinates unavailable) · ${region.region_description ?? ''}`
               : missingReason
           }
         />

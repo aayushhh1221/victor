@@ -9,9 +9,9 @@ export default function ExplorerPage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: 'var(--surface)' }}>
-      <Header dataMode="VERIFIED_SNAPSHOT" activeTab="explorer" />
-      <main className="flex-1 relative w-full h-full overflow-hidden">
+    <div className="flex flex-col h-dvh w-screen overflow-hidden" style={{ background: 'var(--surface)' }}>
+      <Header activeTab="explorer" />
+      <main className="flex-1 relative w-full h-full overflow-hidden" role="main" aria-label="Mars Map View">
         <GlobalMarsMap onSelectJezero={() => router.push('/planner')} />
       </main>
     </div>

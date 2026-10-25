@@ -1,6 +1,7 @@
 """VICTOR — Science opportunity engine."""
 from __future__ import annotations
 import math
+from typing import Optional
 from ..models.domain import Route, ScienceTarget, Coordinate
 from ..models.schemas import ScienceProfilePoint, ScienceProfileResponse
 from ..services.data_service import DataService

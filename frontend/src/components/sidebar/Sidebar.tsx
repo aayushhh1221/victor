@@ -15,7 +15,7 @@ interface SidebarProps {
 const SECTIONS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: 'overview',    icon: Activity,     label: 'Mission Overview' },
   { id: 'plan',        icon: Route,        label: 'Mission Planner' },
-  { id: 'map',         icon: Globe,        label: 'Global Mars Explorer' },
+  { id: 'map',         icon: Globe,        label: 'Mars Map' },
   { id: 'analysis',    icon: BarChart3,    label: 'Route Analysis' },
   { id: 'science',     icon: FlaskConical, label: 'Science Opportunities' },
   { id: 'env',         icon: Thermometer,  label: 'Environmental' },

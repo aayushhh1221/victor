@@ -34,8 +34,8 @@ export default function MissionOverviewView({
           Mission Overview
         </h1>
         <p className="text-sm mt-1 max-w-2xl" style={{ color: 'var(--text-secondary)' }}>
-          VICTOR computes four competing Marswalk routes across Jezero Crater, proves which are
-          Pareto non-dominated, and explains every routing decision through NASA instrument data.
+          VICTOR computes four competing Marswalk routes across Jezero Crater, evaluates
+          trade-offs, and explains routing decisions through ingested dataset layers.
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export default function MissionOverviewView({
             icon: <FlaskConical size={18} />,
             label: 'Data Mode',
             value: dataMode?.replace('_', ' ') ?? '—',
-            sub: dataMode === 'DEMONSTRATION' ? 'Synthetic data' : 'NASA instruments',
+            sub: dataMode === 'DEMONSTRATION' ? 'Synthetic data' : 'Mars datasets',
             color: dataMode === 'DEMONSTRATION' ? 'var(--mode-demo)' : 'var(--accent)',
           },
         ].map(({ icon, label, value, sub, color }) => (

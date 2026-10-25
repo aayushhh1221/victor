@@ -9,7 +9,8 @@
    never by string-concatenating a hex alpha pair onto a var() reference.
    ─────────────────────────────────────────────────────────────────────────── */
 
-/* ── Light theme ─────────────────────────────────────────────────────────── */
+/* ── Light theme (Canonical Shell) ───────────────────────────────────────── */
+:root,
 :root[data-theme="light"] {
   /* Surfaces */
   --surface:           #FFFFFF;
@@ -74,7 +75,7 @@
   --risk-high:             #F97316;
   --risk-extreme:          #EF4444;
 
-  /* Map pins & canvas */
+  /* Map pins & canvas (dark raster canvas for cartographic fidelity) */
   --map-base:              #0B0F19;
   --map-border:            #1E293B;
   --pin-start:             #22C55E;
@@ -104,104 +105,6 @@
 
   /* Recharts */
   --chart-grid: rgba(0, 0, 0, 0.06);
-  --chart-text:  #6B7E96;
-}
-
-/* ── Dark theme (Default Space Mission Control) ──────────────────────────── */
-:root,
-:root[data-theme="dark"] {
-  /* Surfaces */
-  --surface:           #070E18;
-  --surface-raised:    #0D1A2D;
-  --surface-sunken:    #040810;
-  --surface-overlay:   rgba(9, 19, 34, 0.95);
-
-  /* Borders */
-  --border:            rgba(255, 255, 255, 0.08);
-  --border-strong:     rgba(255, 255, 255, 0.15);
-  --border-subtle:     rgba(255, 255, 255, 0.04);
-
-  /* Text */
-  --text-primary:      #E8EDF3;
-  --text-secondary:    #A8B8CE;
-  --text-muted:        #6B7E96;
-  --text-disabled:     #3D5270;
-
-  /* Accent */
-  --accent:            #1E88E5;
-  --accent-hover:      #42A5F5;
-  --accent-light:      rgba(30, 136, 229, 0.15);
-  --accent-lighter:    rgba(30, 136, 229, 0.08);
-  --accent-border:     rgba(30, 136, 229, 0.30);
-  --on-accent:         #FFFFFF;
-
-  /* Header */
-  --header-bg:         #08131E;
-  --header-border:     rgba(255, 255, 255, 0.08);
-  --sidebar-bg:        #08131E;
-  --sidebar-border:    rgba(255, 255, 255, 0.06);
-
-  /* Data mode colours */
-  --mode-live:          #22C55E;
-  --mode-live-bg:       rgba(34, 197, 94, 0.15);
-  --mode-live-border:   rgba(34, 197, 94, 0.30);
-  --mode-verified:      #60A5FA;
-  --mode-verified-bg:   rgba(59, 130, 246, 0.15);
-  --mode-verified-border: rgba(59, 130, 246, 0.30);
-  --mode-demo:          #F59E0B;
-  --mode-demo-bg:       rgba(245, 158, 11, 0.20);
-  --mode-demo-border:   rgba(245, 158, 11, 0.30);
-
-  /* Semantic Status & Alerts */
-  --color-success:         #22C55E;
-  --color-success-bg:      rgba(34, 197, 94, 0.15);
-  --color-success-border:  rgba(34, 197, 94, 0.30);
-  --color-warning:         #F59E0B;
-  --color-warning-bg:      rgba(245, 158, 11, 0.15);
-  --color-warning-border:  rgba(245, 158, 11, 0.30);
-  --color-danger:          #EF4444;
-  --color-danger-bg:       rgba(239, 68, 68, 0.15);
-  --color-danger-border:   rgba(239, 68, 68, 0.30);
-  --color-info:            #60A5FA;
-  --color-info-bg:         rgba(96, 165, 250, 0.15);
-  --color-info-border:     rgba(96, 165, 250, 0.30);
-
-  /* Risk meter levels */
-  --risk-low:              #22C55E;
-  --risk-moderate:         #EAB308;
-  --risk-high:             #F97316;
-  --risk-extreme:          #EF4444;
-
-  /* Map pins & canvas */
-  --map-base:              #06090F;
-  --map-border:            #1E293B;
-  --pin-start:             #22C55E;
-  --pin-dest:              #EF4444;
-  --pin-stop:              #F59E0B;
-
-  /* Layer indicators */
-  --layer-imagery:         #78909C;
-  --layer-terrain:         #8B6914;
-  --layer-elevation:       #4B9CD3;
-  --layer-composition:     #8B5CF6;
-  --layer-thermal:         #EC4899;
-  --layer-dust:            #F59E0B;
-  --layer-science:         #22C55E;
-  --layer-hazard:          #EF4444;
-  --layer-traverse:        #A855F7;
-
-  /* Leaflet */
-  --leaflet-bg:         #06090F;
-  --leaflet-tooltip-bg: rgba(11, 25, 41, 0.97);
-  --leaflet-tooltip-color: #E8EDF3;
-  --leaflet-tooltip-border: rgba(255, 255, 255, 0.15);
-
-  /* Skeleton shimmer */
-  --skeleton-a: #0F2540;
-  --skeleton-b: #162D45;
-
-  /* Recharts */
-  --chart-grid: rgba(255, 255, 255, 0.05);
   --chart-text:  #6B7E96;
 }
 
@@ -484,8 +387,3 @@ input[type="range"].layer-slider::-webkit-slider-thumb {
 .value-high   { background: rgba(22,163,74,0.12); color: #15803D; border: 1px solid rgba(22,163,74,0.25); }
 .value-medium { background: rgba(202,138,4,0.12); color: #A16207; border: 1px solid rgba(202,138,4,0.25); }
 .value-low    { background: rgba(100,116,139,0.12); color: #475569; border: 1px solid rgba(100,116,139,0.20); }
-
-/* Light-on-dark variants for dark theme */
-:root[data-theme="dark"] .value-high   { background: rgba(34,197,94,0.15); color: #86EFAC; border-color: rgba(34,197,94,0.30); }
-:root[data-theme="dark"] .value-medium { background: rgba(245,158,11,0.15); color: #FCD34D; border-color: rgba(245,158,11,0.30); }
-:root[data-theme="dark"] .value-low    { background: rgba(156,163,175,0.12); color: #9CA3AF; border-color: rgba(156,163,175,0.20); }

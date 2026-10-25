@@ -91,7 +91,7 @@ export default function MissionReportView({
 
   const computationId = routeResult?.computation_id ?? null;
   const pdfUrl = computationId && strategy ? getPdfReportUrl(computationId, strategy) : '#';
-  const pdfFilename = computationId && strategy ? `NASA_TM_VICTOR_${strategy}_${computationId.slice(0, 8)}.pdf` : 'mission_report.pdf';
+  const pdfFilename = computationId && strategy ? `VICTOR_${strategy}_${computationId.slice(0, 8)}.pdf` : 'mission_report.pdf';
 
   const loadBriefing = useCallback(() => {
     if (!computationId || !strategy) {

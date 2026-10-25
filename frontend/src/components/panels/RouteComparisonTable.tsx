@@ -108,9 +108,9 @@ export default function RouteComparisonTable({
                         color: isPareto ? 'var(--color-success)' : 'var(--text-muted)',
                         border: `1px solid ${isPareto ? 'var(--color-success-border)' : 'var(--border)'}`,
                       }}
-                      title={isPareto ? 'Non-dominated on Pareto frontier' : 'Dominated by another traverse'}
+                      title={isPareto ? 'Non-dominated candidate across evaluated objectives' : 'Dominated by another candidate'}
                     >
-                      {isPareto ? '★ Optimal' : 'Dominated'}
+                      {isPareto ? 'Non-dominated' : 'Dominated'}
                     </span>
 
                     {!isFeasible ? (
@@ -268,8 +268,8 @@ export default function RouteComparisonTable({
                           Over
                         </span>
                       ) : isPareto ? (
-                        <span className="text-[9px] px-1 py-0.5 rounded font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20">
-                          ★ Best
+                        <span className="text-[9px] px-1 py-0.5 rounded font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20" title="Non-dominated candidate">
+                          Non-dom
                         </span>
                       ) : (
                         <span className="text-[9px] px-1 py-0.5 rounded text-slate-400">

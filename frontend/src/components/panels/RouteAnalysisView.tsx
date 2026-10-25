@@ -468,7 +468,7 @@ export default function RouteAnalysisView({
             Segment Evidence
           </h2>
           <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-            Click any segment to see which NASA instrument data drove its routing cost.
+            Click any segment to see which dataset drove its routing cost.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -542,7 +542,7 @@ export default function RouteAnalysisView({
             className="w-3 h-3 border-2 rounded-full animate-spin"
             style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
           />
-          Querying NASA instrument data…
+          Querying segment evidence…
         </div>
       )}
       {evidence && activeStrategy && (
