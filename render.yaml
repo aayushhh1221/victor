@@ -74,7 +74,7 @@ services:
     runtime: static
     plan: free
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && NODE_OPTIONS=--max-old-space-size=1024 npm run build
     # Next.js `output: 'export'` writes here.
     staticPublishPath: out
     envVars:
@@ -91,8 +91,38 @@ services:
       - key: NEXT_PUBLIC_TILE_BASE_URL
         sync: false
     routes:
-      # Static export produces real files per route; send anything unmatched to
-      # the planner rather than a 404.
+      # Pass Next.js compiled assets through BEFORE the catch-all rewrite.
+      # Without these, the /* rule intercepts /_next/static/css/*.css requests
+      # and returns index.html (text/html), causing the browser to refuse the
+      # stylesheet — resulting in a completely unstyled page.
+      - type: rewrite
+        source: /_next/*
+        destination: /_next/:splat
+
+      # Pass static public assets through so they are never swallowed by the
+      # catch-all below.
+      - type: rewrite
+        source: /favicon.ico
+        destination: /favicon.ico
+      - type: rewrite
+        source: /favicon.svg
+        destination: /favicon.svg
+      - type: rewrite
+        source: /apple-touch-icon.png
+        destination: /apple-touch-icon.png
+      - type: rewrite
+        source: /icon-192.png
+        destination: /icon-192.png
+      - type: rewrite
+        source: /icon-512.png
+        destination: /icon-512.png
+      - type: rewrite
+        source: /victor_logo.png
+        destination: /victor_logo.png
+
+      # Catch-all: send every app route to index.html for client-side routing.
+      # Render evaluates rules top-to-bottom and also checks for a real file
+      # first, so assets that passed the rules above are served correctly.
       - type: rewrite
         source: /*
         destination: /index.html
