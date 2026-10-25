@@ -2,6 +2,7 @@
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse
+from ..config import settings
 from ..models.schemas import RegionInfoResponse, LayerInfo, LayersResponse
 from ..models.enums import DataMode
 from ..dependencies import get_data_service
@@ -87,8 +88,18 @@ async def get_tile(layer: str, z: int, x: int, y: int):
 
 
 def _tiles_exist(layer_id: str) -> bool:
-    """True when a rendered tile pyramid is on disk for this layer."""
-    return (TILES_BASE / layer_id / "1").is_dir()
+    """True when this layer's tiles are renderable somewhere.
+
+    Either a rendered tile pyramid exists on local disk (local development,
+    where scripts/generate_tiles.py has run), or the pyramid is hosted
+    externally and TILES_EXTERNAL_URL says so (production, where Render's
+    ephemeral filesystem carries no tiles). Without the external flag, a
+    deployed API would report every tile layer unavailable and the deployed
+    map could never enable a basemap — even with the tiles sitting on the CDN.
+    """
+    if (TILES_BASE / layer_id / "1").is_dir():
+        return True
+    return bool(settings.TILES_EXTERNAL_URL.strip())
 
 
 def _build_layers(data_service) -> list[LayerInfo]:

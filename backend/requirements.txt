@@ -8,7 +8,6 @@
 #   rasterio / GDAL  — pulls ~100 MB+ of native libs; used only by
 #                      scripts/fetch_nasa_data.py to ingest NASA rasters locally.
 #   scipy            — used only by the ingestion pipeline's resampling.
-#   Pillow           — used only by scripts/generate_tiles.py to render tiles.
 #   requests         — used only by the ingestion pipeline.
 #   pytest / httpx   — test-only.
 #
@@ -32,3 +31,11 @@ python-dotenv>=1.0.0
 # lookups. Import is guarded: with no DATABASE_URL the store is in-memory and
 # the app still runs fully offline.
 psycopg[binary]>=3.1.0
+
+# PDF mission-report export (routers/report.py -> services/pdf_report.py).
+# Imported at module level, so without this the deployed backend fails to boot.
+reportlab>=4.0.0
+
+# Required by reportlab's Image flowable to embed the PNG mission crests in
+# the PDF report. Without it the PDF endpoint 500s at runtime.
+Pillow>=10.1.0

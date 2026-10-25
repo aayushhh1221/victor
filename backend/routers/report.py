@@ -11,12 +11,18 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, Response
 
+from ..config import settings
 from ..dependencies import get_data_service
 from ..services.briefing import generate_briefing
 from ..services.pdf_report import generate_nasa_pdf_report
 
 router = APIRouter(prefix="/api/v1/report", tags=["report"])
 logger = logging.getLogger("victor.report")
+
+# Deep link back into the planner, shown in the report's toolbar. FRONTEND_URL
+# is configuration, so a deployed frontend gets a working link instead of a
+# hardcoded localhost one.
+PLANNER_URL = f"{settings.FRONTEND_URL.rstrip('/')}/planner/?section=report"
 
 
 def _load_computation(computation_id: str):
@@ -71,25 +77,6 @@ def _load_computation(computation_id: str):
                 return entry
         except Exception as exc:
             logger.warning(f"Could not load demo bundle: {exc}")
-
-    # Fallback to most recent computation on disk if one exists
-    if cache_dir.exists():
-        cache_files = sorted(cache_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if cache_files:
-            try:
-                from ..models.schemas import RouteComputeResponse
-
-                data = json.loads(cache_files[0].read_text(encoding="utf-8"))
-                response = RouteComputeResponse.model_validate(data)
-                entry = {
-                    "response": response,
-                    "routes": response.strategies,
-                    "request": None,
-                }
-                _computation_store[computation_id] = entry
-                return entry
-            except Exception as exc:
-                logger.warning(f"Could not fallback to recent computation: {exc}")
 
     raise HTTPException(
         status_code=404,
@@ -463,7 +450,7 @@ def _build_report_html(computation_id: str, response, ds, strategy: str,
     <a href="/api/v1/report/{computation_id}?strategy={strategy}&download=true" style="background:#FFFFFF;color:#1E293B;padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;border:1px solid #CBD5E1;">
       Save HTML
     </a>
-    <a href="http://localhost:3000/planner/?section=report" style="color:#64748B;font-size:11px;text-decoration:none;margin-left:6px;font-weight:500;">
+    <a href="{PLANNER_URL}" style="color:#64748B;font-size:11px;text-decoration:none;margin-left:6px;font-weight:500;">
       ← Return to Planner
     </a>
   </div>

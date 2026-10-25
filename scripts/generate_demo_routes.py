@@ -9,11 +9,15 @@ primary demo path cost zero computation.
 
 Route selection is deliberate. Across Jezero's flat crater floor the four
 strategies converge — on real MOLA terrain a landing-site-to-delta traverse
-separates them by only ~5% on hazard. That is a true property of benign terrain,
-not a bug, but it makes for a weak demonstration of a multi-objective engine.
-A traverse that crosses the crater floor and climbs toward the rim separates them
-by ~56% on hazard and ~25% on distance, using the same real data and the same
-untouched weight profiles.
+separates them by only a few percent on hazard. That is a true property of
+benign terrain, not a bug, but it makes for a weak demonstration of a
+multi-objective engine. The default traverse therefore crosses the crater floor
+from near the Carbonate Deposit Gamma margin (18.44, 77.34) northeast to
+(18.60, 77.45): measured spread across the four strategies is ~18% on hazard,
+~16% on science and ~10% on distance, with all four routes Pareto non-dominated
+and a catalogued science target in range — same real data, same untouched
+weight profiles. Rim-climbing traverses separate harder still, but every one
+within this window blows the 6 h EVA budget, so none can serve as the demo.
 
 Usage (from the repository root):
     python scripts/generate_demo_routes.py
@@ -31,9 +35,11 @@ sys.path.insert(0, str(ROOT))
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger("victor.demo_routes")
 
-# Séítah to Ancient Delta (Mars 2020 Perseverance Traverse reference)
-DEFAULT_START = (18.44, 77.45)
-DEFAULT_DEST = (18.48, 77.24)
+# Crater-floor crossing near the Carbonate Deposit Gamma margin, chosen for the
+# widest measured trade-off spread that still fits the 6 h EVA budget (see the
+# module docstring above).
+DEFAULT_START = (18.44, 77.34)
+DEFAULT_DEST = (18.60, 77.45)
 
 OUT_PATH = ROOT / "backend" / "data" / "demo" / "precomputed_routes.json"
 
@@ -98,6 +104,7 @@ def main() -> int:
         comparison=_build_comparison(routes),
         pareto=pareto,
         provenance=ds.get_provenance(),
+        effective_constraints=constraints,
     )
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)

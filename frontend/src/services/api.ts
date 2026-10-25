@@ -263,20 +263,5 @@ export function getGeoJsonReportUrl(
   return `${API_BASE}/api/v1/routes/${encodeURIComponent(computationId)}/geojson${qs}`;
 }
 
-export interface RoutePresetItem {
-  id: string;
-  name: string;
-  type: string;
-  desc: string;
-  start: { lat: number; lon: number };
-  destination: { lat: number; lon: number };
-  historical_context?: string;
-}
-
-/** Fetch authoritative traverse presets from backend. */
-export async function getRoutePresets(): Promise<RoutePresetItem[]> {
-  return fetchJson<RoutePresetItem[]>('/api/v1/routes/presets');
-}
-
 export { ApiError };
 

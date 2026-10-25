@@ -247,10 +247,8 @@ pytest backend/tests -v
 ```
 
 **All 47 pass only when the data grids are present** — run `python scripts/bootstrap.py`
-first. Without them the suite reports `16 passed, 24 skipped, 7 errors`, which looks
-far healthier than it is. One performance test is also marginal and may fail on a
-full-suite run; both issues are documented in
-[`docs/PROJECT_STATUS_REPORT.md`](docs/PROJECT_STATUS_REPORT.md) (HIGH-6, HIGH-7).
+first. Without them the suite reports many skips and errors, which looks
+far healthier than it is.
 
 ### Test suite coverage:
 - `backend/tests/test_mars_geo.py`: Mars haversine accuracy, bearing, and grid round-trip transformations.
@@ -319,20 +317,20 @@ NSAC 2026/
 │   ├── package.json
 │   └── tsconfig.json
 ├── docs/
-│   ├── PROJECT_STATUS_REPORT.md   # Current status, ranked findings, compliance matrix
-│   ├── BUILD_STATE.md             # Implementation milestone tracker
+│   ├── DEPLOYMENT.md              # Render + Supabase deployment guide
 │   ├── challenge-contract.md      # Binding challenge requirements
 │   ├── demo-script.md             # 7-minute presentation walkthrough
 │   ├── judge-qa.md                # Technical defense & FAQ
-│   ├── VICTOR-blueprint-part1.md# System architecture blueprint
-│   ├── VICTOR-blueprint-part2.md# Implementation prompts & interfaces
 │   ├── geospatial-methodology.md  # Mars coordinate math documentation
 │   └── nasa-data-catalog.md       # Instrument provenance specifications
 └── scripts/
     ├── bootstrap.py               # One-command setup for a fresh clone
-    ├── data_pipeline.py           # NASA data acquisition pipeline
-    ├── generate_synthetic_fallback.py # Synthetic Jezero grid generator
-    └── generate_tiles.py          # Multiscale PNG tile generator
+    ├── fetch_nasa_data.py         # Windowed NASA PDS/USGS ingestion pipeline
+    ├── classify_terrain.py        # Unsupervised terrain archetypes (k-means)
+    ├── generate_tiles.py          # Multiscale PNG tile generator
+    ├── generate_demo_routes.py    # Precomputed demo bundle regenerator
+    ├── upload_tiles.py            # Tile pyramid -> Supabase Storage
+    └── update_manifest.py         # Cache integrity manifest maintainer
 ```
 
 ---

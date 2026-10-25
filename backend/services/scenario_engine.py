@@ -20,6 +20,29 @@ class ScenarioEngine:
         self.ds = data_service
         self.engine = RouteEngine(data_service)
 
+    def _paths_diverged(self, base_route, modified_route, threshold: float = 0.1) -> bool:
+        """True when two traverses use materially different ground.
+
+        The previous test was a distance proxy (|Δdistance| > 0.5 km), which
+        missed the case that matters: a reroute that moves the corridor while
+        keeping roughly the same total length — exactly what a constraint change
+        usually produces. Instead, compare the sets of grid cells each path
+        visits (Jaccard distance): 0 means the same corridor, 1 means no shared
+        cells. More than 10% new-or-abandoned cells, or a length change over
+        1 km, is a different route for planning purposes.
+        """
+        base_cells = {self.ds.latlon_to_grid(p.lat, p.lon) for p in base_route.path}
+        mod_cells = {self.ds.latlon_to_grid(p.lat, p.lon) for p in modified_route.path}
+        union = base_cells | mod_cells
+        if not union:
+            return False
+        jaccard_distance = 1.0 - len(base_cells & mod_cells) / len(union)
+
+        dist_delta_km = abs(
+            base_route.metrics.distance_km - modified_route.metrics.distance_km
+        )
+        return jaccard_distance > threshold or dist_delta_km > 1.0
+
     def compare_scenarios(
         self,
         base_routes: dict,
@@ -62,8 +85,9 @@ class ScenarioEngine:
                 continue
             bm = base_routes[strategy_name].metrics
             mm = modified_routes[strategy_name].metrics
-            # Check if route diverged (significant path change)
-            route_diverged = abs(bm.distance_km - mm.distance_km) > 0.5
+            route_diverged = self._paths_diverged(
+                base_routes[strategy_name], modified_routes[strategy_name]
+            )
             diffs.append(ScenarioDiff(
                 strategy=strategy_name,
                 distance_change_km=round(mm.distance_km - bm.distance_km, 3),

@@ -20,6 +20,8 @@
   "provenance": {
     "classification": "MEASURED",
     "observation_sols": "Sol 1 to 1000 seasonal composite baseline",
-    "citation": "Rodriguez-Manfredi et al. (2021) Space Science Reviews; PDS Atmospheres Node"
+    "citation": "Rodriguez-Manfredi et al. (2021) Space Science Reviews; PDS Atmospheres Node",
+    "ingestion": "HAND-TRANSCRIBED — these values were transcribed by hand from the PDS Atmospheres Node bundle (urn:nasa:pds:mars2020_meda), not programmatically ingested. Every other VICTOR grid has a reproducible pipeline script; this file is the one exception, and it is labelled as such. Re-derive from PDS before treating these numbers as mission-planning inputs.",
+    "reproducible_pipeline": false
   }
 }

@@ -128,7 +128,7 @@ export default function EvidencePopup({
               </span>
             </div>
             <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-              0.5×slope + 0.3×rock + 0.2×surface_dust_risk (THEMIS TI)
+              10 × (0.7 × slope/25 + 0.3 × (1 − THEMIS thermal proxy))
             </p>
           </div>
         </section>

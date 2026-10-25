@@ -283,7 +283,7 @@ class TestPerformance:
     # This is deliberately NOT a statement that ~5 s is acceptable in production. It
     # is not: the deployment target provides 0.1 shared CPU, where this computation is
     # projected at 22-44 s. That is addressed by route caching and the precomputed
-    # demo route, not by this threshold. See docs/PROJECT_STATUS_REPORT.md (HIGH-7).
+    # demo route, not by this threshold.
     PERF_CEILING_S = float(os.environ.get("VICTOR_PERF_CEILING_S", "10.0"))
 
     def test_computation_within_performance_ceiling(self, engine_and_routes):

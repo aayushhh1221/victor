@@ -61,6 +61,35 @@ RECONNECT_COOLDOWN_SECONDS = 30.0
 T = TypeVar("T")
 
 
+def _normalise_weight_overrides(
+    weight_overrides: Optional[dict],
+) -> Optional[dict]:
+    """Normalise weight overrides to a stable, JSON-safe form.
+
+    Accepts both shapes the API schema permits — flat
+    ``{"hazard": 2.0}`` and per-strategy ``{"SAFEST": {"hazard": 2.0}}`` —
+    rounding floats to 4 decimal places so float noise cannot defeat the cache.
+    Anything else raises, because silently hashing an unexpected shape would
+    make one request's key collide with another's.
+    """
+    if not weight_overrides:
+        return None
+
+    def norm_value(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"Weight override values must be numbers, got {value!r}")
+        return round(float(value), 4)
+
+    normalised: dict = {}
+    for key in sorted(weight_overrides):
+        value = weight_overrides[key]
+        if isinstance(value, dict):
+            normalised[key] = {k: norm_value(v) for k, v in sorted(value.items())}
+        else:
+            normalised[key] = norm_value(value)
+    return normalised
+
+
 def route_cache_key(
     start_lat: float,
     start_lon: float,
@@ -68,14 +97,20 @@ def route_cache_key(
     dest_lon: float,
     constraints: dict,
     strategies: Optional[list[str]] = None,
-    weight_overrides: Optional[dict[str, float]] = None,
+    weight_overrides: Optional[dict] = None,
     data_manifest_id: Optional[str] = None,
+    allow_infeasible: bool = False,
 ) -> str:
     """Stable cache key for a route computation.
 
     Coordinates are rounded to 5 decimal places (~1 m at Mars scale, far finer
     than the 177.5 m grid cell) so that floating-point noise in a request does
     not defeat the cache, while genuinely different start points still miss.
+
+    Every input that changes the engine's output must appear here: weight
+    overrides change the A* cost function, and allow_infeasible decides whether
+    over-budget routes are returned or rejected — omitting either once served a
+    cached response computed under different weights.
 
     Lives here rather than in the router so the hashing rule sits next to the
     table that depends on it.
@@ -85,7 +120,8 @@ def route_cache_key(
         "dest": [round(dest_lat, 5), round(dest_lon, 5)],
         "constraints": {k: constraints[k] for k in sorted(constraints)},
         "strategies": sorted(strategies) if strategies else None,
-        "weight_overrides": {k: round(weight_overrides[k], 4) for k in sorted(weight_overrides)} if weight_overrides else None,
+        "weight_overrides": _normalise_weight_overrides(weight_overrides),
+        "allow_infeasible": bool(allow_infeasible),
         "data_manifest_id": data_manifest_id,
     }
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))

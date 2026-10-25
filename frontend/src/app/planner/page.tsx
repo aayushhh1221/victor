@@ -72,6 +72,49 @@ const DEFAULT_LAYERS: ActiveLayer[] = [
 
 type PinMode = 'start' | 'destination' | null;
 
+/** Focus profile selection driving per-strategy weight overrides. */
+type WeightProfile = 'balanced' | 'safest' | 'fastest' | 'science' | 'custom';
+
+/**
+ * Focus presets, as PER-STRATEGY weight overrides.
+ *
+ * Each preset intensifies the strategy it is named after and leaves the other
+ * three on their approved profiles, so the comparison table always shows four
+ * genuinely different routes. The previous implementation sent one flat
+ * override to every strategy — identical weights mean identical A* output, so
+ * all four routes came back the same.
+ * `custom` tunes the BALANCED profile through the sliders in Parameters.
+ */
+const FOCUS_PRESETS: Partial<
+  Record<Exclude<WeightProfile, 'balanced' | 'custom'>, { strategy: RouteStrategy; weights: Record<string, number> }>
+> = {
+  safest: { strategy: 'SAFEST', weights: { distance: 0.5, hazard: 3.0, science_penalty: 0.5 } },
+  fastest: { strategy: 'FASTEST', weights: { distance: 3.0, hazard: 0.3, science_penalty: 0.2 } },
+  science: { strategy: 'SCIENCE_RICHEST', weights: { distance: 0.5, hazard: 0.8, science_penalty: 3.0 } },
+};
+
+const FOCUS_TITLE: Record<WeightProfile, string> = {
+  balanced: 'All strategies use their approved weight profiles',
+  safest: 'Intensify the SAFEST strategy (hazard weight ×6)',
+  fastest: 'Intensify the FASTEST strategy (distance weight ×5)',
+  science: 'Intensify the SCIENCE_RICHEST strategy (science weight ×4.3)',
+  custom: 'Tune the BALANCED strategy with your own weights',
+};
+
+/** Build the per-strategy override payload for a focus profile. */
+function buildWeightOverrides(
+  profile: WeightProfile,
+  customWeights: { distance?: number; hazard?: number; science_penalty?: number },
+): Record<string, Record<string, number>> | undefined {
+  if (profile === 'balanced') return undefined;
+  if (profile === 'custom') {
+    const entries = Object.entries(customWeights).filter(([, v]) => typeof v === 'number');
+    return entries.length > 0 ? { BALANCED: Object.fromEntries(entries) } : undefined;
+  }
+  const preset = FOCUS_PRESETS[profile];
+  return preset ? { [preset.strategy]: preset.weights } : undefined;
+}
+
 /** Map which sidebar sections and header tabs render as the full-page main view. */
 type MainView =
   | 'planner'   // Default: map + right panel
@@ -182,9 +225,9 @@ export default function PlannerPage() {
   const [sidebarTab, setSidebarTab] = useState<'solutions' | 'parameters' | 'layers'>('solutions');
   // Quick parameter banner toggle
   const [showQuickParams, setShowQuickParams] = useState(false);
-  // Optimization weight overrides state
-  const [weightProfile, setWeightProfile] = useState<'balanced' | 'safest' | 'fastest' | 'science' | 'custom'>('balanced');
-  const [weightOverrides, setWeightOverrides] = useState<{
+  // Optimization focus profile + custom slider values (applied to BALANCED)
+  const [weightProfile, setWeightProfile] = useState<WeightProfile>('balanced');
+  const [customWeights, setCustomWeights] = useState<{
     distance?: number;
     hazard?: number;
     science_penalty?: number;
@@ -367,7 +410,7 @@ export default function PlannerPage() {
       startCoord: Coordinate,
       destCoord: Coordinate,
       overrideConstraints?: MissionConstraints,
-      overrideWeights?: Record<string, number>,
+      overrideWeights?: Record<string, Record<string, number>>,
     ) => {
       const dist = Math.hypot(destCoord.lat - startCoord.lat, destCoord.lon - startCoord.lon);
       if (dist < 0.001) {
@@ -379,7 +422,7 @@ export default function PlannerPage() {
       setEvidence(null);
 
       const activeConstraints = overrideConstraints || constraints;
-      const activeWeights = overrideWeights || (weightProfile === 'custom' && Object.keys(weightOverrides).length > 0 ? weightOverrides : undefined);
+      const activeOverrides = overrideWeights ?? buildWeightOverrides(weightProfile, customWeights);
 
       try {
         const payload: any = {
@@ -389,8 +432,8 @@ export default function PlannerPage() {
           strategies: ['SAFEST', 'FASTEST', 'SCIENCE_RICHEST', 'BALANCED'],
           allow_infeasible: true,
         };
-        if (activeWeights && Object.keys(activeWeights).length > 0) {
-          payload.weight_overrides = activeWeights;
+        if (activeOverrides && Object.keys(activeOverrides).length > 0) {
+          payload.weight_overrides = activeOverrides;
         }
         const result = await computeRoutes(payload);
         setRouteResult(result);
@@ -403,22 +446,13 @@ export default function PlannerPage() {
         setIsComputing(false);
       }
     },
-    [constraints, weightProfile, weightOverrides],
+    [constraints, weightProfile, customWeights],
   );
 
-  const handleWeightProfileChange = (profile: 'balanced' | 'safest' | 'fastest' | 'science' | 'custom') => {
+  const handleWeightProfileChange = (profile: WeightProfile) => {
     setWeightProfile(profile);
-    let newWeights: Record<string, number> = {};
-    if (profile === 'safest') {
-      newWeights = { distance: 0.5, hazard: 3.0, science_penalty: 0.5 };
-    } else if (profile === 'fastest') {
-      newWeights = { distance: 3.0, hazard: 0.3, science_penalty: 0.2 };
-    } else if (profile === 'science') {
-      newWeights = { distance: 0.5, hazard: 0.8, science_penalty: 3.0 };
-    }
-    setWeightOverrides(newWeights);
     if (start && destination) {
-      triggerCompute(start, destination, constraints, Object.keys(newWeights).length > 0 ? newWeights : undefined);
+      triggerCompute(start, destination, undefined, buildWeightOverrides(profile, customWeights));
     }
   };
 
@@ -748,6 +782,7 @@ export default function PlannerPage() {
                     <button
                       key={p}
                       onClick={() => handleWeightProfileChange(p)}
+                      title={FOCUS_TITLE[p]}
                       className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize transition-all"
                       style={{
                         background: weightProfile === p ? 'var(--accent)' : 'var(--surface-sunken)',
@@ -1455,7 +1490,8 @@ export default function PlannerPage() {
                 <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
                   <p className="section-heading mb-2">Strategy Optimization Weights</p>
                   <p className="text-[10px] mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                    Tune the cost weights driving A* graph search across the terrain:
+                    A focus preset intensifies its matching strategy; the other three keep their
+                    approved profiles. Custom tunes the Balanced route.
                   </p>
                   <div className="grid grid-cols-2 gap-1.5 mb-3">
                     {([
@@ -1468,6 +1504,7 @@ export default function PlannerPage() {
                         key={id}
                         type="button"
                         onClick={() => handleWeightProfileChange(id)}
+                        title={FOCUS_TITLE[id]}
                         className="p-1.5 rounded text-xs font-medium text-left transition-all border"
                         style={{
                           background: weightProfile === id ? 'var(--accent-light)' : 'var(--surface-sunken)',
@@ -1482,27 +1519,30 @@ export default function PlannerPage() {
 
                   {weightProfile === 'custom' && (
                     <div className="space-y-2 p-2 rounded bg-black/10">
+                      <p className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                        Custom weights apply to the BALANCED strategy:
+                      </p>
                       <div>
                         <div className="flex justify-between text-[10px]">
                           <span>Hazard Avoidance:</span>
-                          <span className="font-mono">{(weightOverrides.hazard ?? 1.0).toFixed(1)}</span>
+                          <span className="font-mono">{(customWeights.hazard ?? 1.0).toFixed(1)}</span>
                         </div>
                         <input
                           type="range" min={0.1} max={5.0} step={0.1}
-                          value={weightOverrides.hazard ?? 1.0}
-                          onChange={(e) => setWeightOverrides((w) => ({ ...w, hazard: +e.target.value }))}
+                          value={customWeights.hazard ?? 1.0}
+                          onChange={(e) => setCustomWeights((w) => ({ ...w, hazard: +e.target.value }))}
                           className="w-full h-1"
                         />
                       </div>
                       <div>
                         <div className="flex justify-between text-[10px]">
                           <span>Distance Weight:</span>
-                          <span className="font-mono">{(weightOverrides.distance ?? 1.0).toFixed(1)}</span>
+                          <span className="font-mono">{(customWeights.distance ?? 1.0).toFixed(1)}</span>
                         </div>
                         <input
                           type="range" min={0.1} max={5.0} step={0.1}
-                          value={weightOverrides.distance ?? 1.0}
-                          onChange={(e) => setWeightOverrides((w) => ({ ...w, distance: +e.target.value }))}
+                          value={customWeights.distance ?? 1.0}
+                          onChange={(e) => setCustomWeights((w) => ({ ...w, distance: +e.target.value }))}
                           className="w-full h-1"
                         />
                       </div>

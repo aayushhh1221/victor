@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     TILES_DIR: Path = BASE_DIR / "data" / "tiles"
     DEMO_DIR: Path = BASE_DIR / "data" / "demo"
 
+    # Public base URL when the tile pyramid is hosted externally (Supabase
+    # Storage), e.g. https://<ref>.supabase.co/storage/v1/object/public/victor-tiles
+    #
+    # Render's filesystem is ephemeral and the 202 MB pyramid is deliberately
+    # gitignored, so a deployed API has NO local tiles. Layer availability in
+    # /api/v1/map/layers must not be decided by a local-disk check alone then —
+    # when this is set, tile-backed layers whose grids are ingested report
+    # available and the frontend fetches the PNGs from the CDN instead.
+    TILES_EXTERNAL_URL: str = ""
+
     # Data mode — VERIFIED_SNAPSHOT is primary (real pre-downloaded NASA data)
     DATA_MODE: DataMode = DataMode.VERIFIED_SNAPSHOT
 

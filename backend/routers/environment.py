@@ -38,9 +38,11 @@ async def get_current_environment(data_service=Depends(get_data_service)):
     notes_parts = []
     if params:
         notes_parts.append(
-            "Surface temperature, dust optical depth, and atmospheric pressure are real in-situ "
+            "Surface temperature, dust optical depth, and atmospheric pressure are in-situ "
             "measurements from the NASA Mars 2020 Perseverance MEDA instrument suite at Jezero Crater "
-            "(PDS Atmospheres Node, urn:nasa:pds:mars2020_meda)."
+            "(PDS Atmospheres Node, urn:nasa:pds:mars2020_meda). These are archived sol-composite "
+            "values HAND-TRANSCRIBED from that bundle — the one VICTOR input without a reproducible "
+            "ingestion script — not a live feed."
         )
     if has_thermal:
         notes_parts.append(

@@ -139,6 +139,61 @@ class TestWeightOverrides:
         with pytest.raises(ValueError, match="must be between 0.0 and 5.0"):
             ScenarioModification(weight_overrides={"distance": 10.0})
 
+    def test_api_weight_overrides_not_served_stale_from_cache(self, api_client):
+        """Two computes identical except for weight_overrides must not share a
+        cache entry.
+
+        Regression: the route cache key omitted weight_overrides, so the second
+        request was served the first one's routes — the UI's focus profiles
+        (Safety First / Speed Sprint / Science Focus) silently did nothing on a
+        warm cache.
+        """
+        base_payload = {
+            "start": {"lat": 18.40, "lon": 77.40},
+            "destination": {"lat": 18.52, "lon": 77.30},
+            "constraints": {"max_slope_deg": 20.0, "max_eva_hours": 8.0, "walking_speed_kmh": 3.0},
+            "strategies": ["SAFEST"],
+        }
+        r1 = api_client.post(
+            "/api/v1/routes/compute",
+            json={**base_payload, "weight_overrides": {"hazard": 0.1}},
+        )
+        assert r1.status_code == 200
+        d1 = r1.json()
+        assert d1["strategies"]["SAFEST"]["effective_weights"]["hazard"] == 0.1
+
+        r2 = api_client.post(
+            "/api/v1/routes/compute",
+            json={**base_payload, "weight_overrides": {"hazard": 0.9}},
+        )
+        assert r2.status_code == 200
+        d2 = r2.json()
+        assert d2["strategies"]["SAFEST"]["effective_weights"]["hazard"] == 0.9
+        assert d2["computation_id"] != d1["computation_id"]
+
+    def test_api_nested_weight_overrides_compute(self, api_client):
+        """Per-strategy overrides are schema-legal and must not crash the cache
+        key builder (it once raised TypeError rounding a nested dict)."""
+        payload = {
+            "start": {"lat": 18.40, "lon": 77.40},
+            "destination": {"lat": 18.52, "lon": 77.30},
+            "constraints": {"max_slope_deg": 20.0, "max_eva_hours": 8.0, "walking_speed_kmh": 3.0},
+            "strategies": ["SAFEST", "FASTEST"],
+            "weight_overrides": {"SAFEST": {"hazard": 2.5}},
+        }
+        resp = api_client.post("/api/v1/routes/compute", json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["strategies"]["SAFEST"]["effective_weights"]["hazard"] == 2.5
+        # The un-overridden strategy keeps its approved profile.
+        assert data["strategies"]["FASTEST"]["effective_weights"]["hazard"] == 0.1
+
+    def test_unknown_computation_report_is_404_not_another_route(self, api_client):
+        """A report URL for an unknown computation_id must 404, never render the
+        most recent computation on disk under the wrong id."""
+        resp = api_client.get("/api/v1/report/not-a-real-computation-id?strategy=BALANCED")
+        assert resp.status_code == 404
+
 
 # ── AUD-006: Manifest Integrity Verification ────────────────────────────────
 
@@ -234,18 +289,6 @@ class TestApiSafetyEndpoints:
         assert "attachment" in resp.headers["content-disposition"]
         assert resp.content.startswith(b"%PDF-")
         assert len(resp.content) > 5000
-
-    def test_route_presets_endpoint(self, api_client):
-        """Presets endpoint must return authoritative Jezero traverse presets."""
-        resp = api_client.get("/api/v1/routes/presets")
-        assert resp.status_code == 200
-        presets = resp.json()
-        assert len(presets) == 4
-        assert presets[0]["id"] == "seitah-delta"
-        for p in presets:
-            assert "start" in p and "destination" in p
-            assert 18.0 <= p["start"]["lat"] <= 18.9
-            assert 77.0 <= p["start"]["lon"] <= 78.0
 
     def test_geojson_route_export(self, api_client):
         """GeoJSON route export must return valid RFC 7946 FeatureCollection."""

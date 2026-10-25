@@ -209,6 +209,66 @@ class TestRouteCacheKey:
         b = route_cache_key(18.440000004, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
         assert a == b
 
+    def test_different_weight_overrides_miss(self):
+        """Weight overrides change the A* cost function, so they change the key.
+
+        Regression: the router once omitted weight_overrides from the key, so a
+        repeat compute under a different focus profile was served the cached
+        routes computed under the previous weights.
+        """
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        b = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"hazard": 3.0},
+        )
+        c = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"hazard": 0.3},
+        )
+        assert a != b
+        assert b != c
+
+    def test_weight_override_float_noise_still_hits(self):
+        """Overrides are rounded so request noise does not defeat the cache."""
+        a = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"hazard": 3.0},
+        )
+        b = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"hazard": 3.00000001},
+        )
+        assert a == b
+
+    def test_nested_per_strategy_overrides_are_keyed(self):
+        """Per-strategy overrides are schema-legal and must neither crash the
+        key builder nor collide with the flat form."""
+        nested = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"SAFEST": {"hazard": 3.0}, "FASTEST": {"distance": 2.0}},
+        )
+        flat = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"hazard": 3.0},
+        )
+        nested_again = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            weight_overrides={"FASTEST": {"distance": 2.0}, "SAFEST": {"hazard": 3.0}},
+        )
+        assert nested == nested_again  # key order must not matter
+        assert nested != flat
+
+    def test_allow_infeasible_changes_the_key(self):
+        """allow_infeasible decides whether over-budget routes are returned or
+        rejected — a hit across that flag would leak an infeasible route into a
+        request that asked to exclude it."""
+        a = route_cache_key(18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"])
+        b = route_cache_key(
+            18.44, 77.45, 18.50, 77.25, self.CONSTRAINTS, ["SAFEST"],
+            allow_infeasible=True,
+        )
+        assert a != b
+
 
 class TestRouteCacheMemory:
     def test_miss_returns_none(self, store):

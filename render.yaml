@@ -62,6 +62,12 @@ services:
       # in-memory and will not survive a spin-down.
       - key: DATABASE_URL
         sync: false
+      # Public base URL of the tile pyramid on Supabase Storage — same value as
+      # NEXT_PUBLIC_TILE_BASE_URL on victor-web. The deploy carries no local
+      # tiles (202 MB, gitignored), so without this /map/layers reports every
+      # tile layer unavailable and the deployed map cannot enable a basemap.
+      - key: TILES_EXTERNAL_URL
+        sync: false
 
   - type: web
     name: victor-web

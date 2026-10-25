@@ -66,6 +66,8 @@ async def compute_routes(
         req.destination.lat, req.destination.lon,
         req.constraints.model_dump(),
         strategy_names,
+        weight_overrides=req.weight_overrides,
+        allow_infeasible=req.allow_infeasible,
         data_manifest_id=manifest_id,
     )
     cached = _computation_store.get_cached_route(cache_key)
@@ -142,7 +144,7 @@ async def compute_routes(
         comparison=comparison,
         pareto={k: v for k, v in pareto.items()},
         provenance=data_service.get_provenance(),
-        data_manifest_id="manifest-jezero-2026-v1",
+        data_manifest_id=manifest_id or "manifest-jezero-2026-v1",
         pipeline_version="1.0.0",
         effective_constraints=req.constraints,
     )
@@ -225,49 +227,6 @@ async def get_demo_routes(data_service=Depends(get_data_service)):
         "request": req_obj,
     }
     return response
-
-
-@router.get("/presets")
-async def get_route_presets():
-    """Return authoritative historical traverse presets for Jezero Crater."""
-    return [
-        {
-            "id": "seitah-delta",
-            "name": "Séítah → Ancient Delta",
-            "type": "Historic Traverse",
-            "desc": "Perseverance landing site traverse across crater floor toward river delta (4.2 km).",
-            "start": {"lat": 18.4447, "lon": 77.4508},
-            "destination": {"lat": 18.4812, "lon": 77.2415},
-            "historical_context": "Traverses the rugged olivine-bearing Séítah formation toward the Hawksbill Gap sedimentary delta fan.",
-        },
-        {
-            "id": "crater-floor-fan",
-            "name": "Crater Floor → Delta Fan",
-            "type": "Sedimentary Stratigraphy",
-            "desc": "Traverse across basaltic sands to Hawksbill Gap layered delta deposits (3.1 km).",
-            "start": {"lat": 18.4320, "lon": 77.4250},
-            "destination": {"lat": 18.4610, "lon": 77.3300},
-            "historical_context": "Crosses the low-albedo crater floor to inspect mudstone and clay layers preserving biosignature potential.",
-        },
-        {
-            "id": "three-forks-margin",
-            "name": "Three Forks → Margin Unit",
-            "type": "Carbonate Exploration",
-            "desc": "Sample cache depot route ascending to carbonate-bearing rim margin (3.8 km).",
-            "start": {"lat": 18.4520, "lon": 77.3520},
-            "destination": {"lat": 18.4980, "lon": 77.2400},
-            "historical_context": "Ascends from the Three Forks sample cache depot to the high-priority carbonate margin unit at the crater rim.",
-        },
-        {
-            "id": "kodiak-rim",
-            "name": "Kodiak Butte Pass → Crater Rim",
-            "type": "Geomorphology Scouting",
-            "desc": "Geological scouting mission toward Jezero crater northern rim (3.4 km).",
-            "start": {"lat": 18.4400, "lon": 77.3850},
-            "destination": {"lat": 18.4900, "lon": 77.3600},
-            "historical_context": "Examines the Kodiak isolated butte delta remnant before ascending the steep ejecta slopes of the northern rim.",
-        },
-    ]
 
 
 @router.get("/{computation_id}/geojson")

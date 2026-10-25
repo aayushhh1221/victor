@@ -15,9 +15,9 @@ Usage (from the repository root):
     python scripts/bootstrap.py --skip-tiles # grids only (faster; tiles take minutes)
 
 Why this exists: the backend refuses to serve routes without the .npy grids, and
-the test suite silently skips 24 of its 47 tests when they are absent — so a
+the test suite silently skips most of its tests when they are absent — so a
 fresh clone that skips this step appears to work while being substantially
-non-functional. See docs/PROJECT_STATUS_REPORT.md (HIGH-6, MEDIUM-1).
+non-functional.
 """
 import argparse
 import logging
