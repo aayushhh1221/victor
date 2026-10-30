@@ -1,0 +1,13 @@
+# Normalize line endings so manifest hashes are consistent across platforms.
+# The integrity check in data_service.py hashes raw file bytes — any CRLF/LF
+# difference between Windows checkouts and Linux (Render) deployments causes
+# false "hash mismatch" failures and degrades the app to DEMONSTRATION mode.
+
+# All text files: LF in the repo, LF on checkout everywhere.
+* text=auto eol=lf
+
+# Committed data cache files — must hash identically on Windows and Linux.
+backend/data/cache/*.json text eol=lf
+
+# Explicitly binary — never touch line endings.
+backend/data/cache/*.npy binary
